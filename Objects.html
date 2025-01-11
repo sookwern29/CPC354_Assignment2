@@ -14,7 +14,7 @@
 	<script type="text/javascript" src="Common/webgl-utils.js"></script>
 	<script type="text/javascript" src="Common/initShaders.js"></script>
 	<script type="text/javascript" src="Common/MV.js"></script>
-	<script type="text/javascript" src="Demo_7_LightSphere.js"></script>
+	<script type="text/javascript" src="Logic.js"></script>
 	<script type="text/javascript" src="Geometry.js"></script>
 	<link rel="stylesheet" type="text/css" href="DemoCSS.css">
 
@@ -29,6 +29,9 @@
 		uniform vec4 specularProduct;
 		uniform vec4 lightPos;
 		uniform float shininess;
+		uniform bool uIsPointLight;
+		uniform vec4 uSpotLightDirection;
+		uniform float uSpotLightCutoff;
 		
 		// Declare the input variable(s) to receive per-vertex data from the application
 		attribute vec4 vPosition;
@@ -68,6 +71,23 @@
 			if(dot(L, N) < 0.0)
 			{
 				specular = vec4(0.0, 0.0, 0.0, 1.0);
+			}
+
+			// For spot light, calculate the spotlight effect
+			if (!uIsPointLight) {
+				vec3 spotDir = normalize(uSpotLightDirection.xyz);
+				float spotEffect = dot(-L, spotDir);
+				
+				if (spotEffect > uSpotLightCutoff) {
+					// Inside the spotlight cone
+					float spotIntensity = pow(spotEffect, 4.0); // Adjust the 4.0 to control the falloff
+					diffuse *= spotIntensity;
+					specular *= spotIntensity;
+				} else {
+					// Outside the spotlight cone
+					diffuse = vec4(0.0);
+					specular = vec4(0.0);
+				}
 			}
 
 			gl_Position = projectionMatrix * modelViewMatrix * vPosition;
@@ -126,6 +146,13 @@
 					<span class="light-circle-label">Specular</span>
 					<div class="light-circle specular-circle"></div>
 				</div>
+			</div>
+
+			<!-- Light Type Section -->
+			<div class="sub-title">Light Type:</div>
+			<div class="light-type-toggle">
+				<button class="light-type-btn active" id="point-light">Point Light</button>
+				<button class="light-type-btn" id="spot-light">Spot Light</button>
 			</div>
 
 			<!-- Light Position Section -->
@@ -198,6 +225,8 @@
 					<div class="slider-value" id="text-shininess">60</div>
 				</div>
 			</div>
+
+
 
 			<!-- Divider -->
 			<div class="section-divider"></div>
@@ -319,6 +348,9 @@
 				</div>
 			</div>
 
+			<!-- Divider -->
+			<div class="section-divider"></div>
+
 			<!-- Background Color Section -->
 			<div class="background-color">
 				<div class="sub-title">Background Color</div>
@@ -326,6 +358,9 @@
 					<input type="color" id="background-color-picker" class="color-picker" value="#FFFFFF">
 				</div>
 			</div>
+
+			<!-- Divider -->
+			<div class="section-divider"></div>
 
 			<!-- Shading Type Section -->
 			<div class="shading-type">
@@ -336,6 +371,8 @@
 				</div>
 			</div>
 
+			<!-- Divider -->
+			<div class="section-divider"></div>
 			<!-- Rotation Axis Section -->
 			<div class="rotation-axis">
 				<div class="sub-title">Rotation Axis</div>

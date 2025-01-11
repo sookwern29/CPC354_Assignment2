@@ -31,7 +31,7 @@ var materialAmbient = vec4(0.5, 0.5, 1.0, 1.0);
 var materialDiffuse = vec4(0.0, 0.9, 1.0, 1.0);
 var materialSpecular = vec4(1.0, 1.0, 1.0, 1.0);
 
-var eye = vec3(0.0, 0.0, 8.0);
+var eye = vec3(0.0, 0.0, 4.0);
 var at = vec3(0.0, 0.0, 0.0);
 var up = vec3(0.0, 1.0, 0.0);
 
@@ -45,6 +45,9 @@ var teacupV, torusV, plateV, totalV;
 // Add these variables at the top with other global variables
 let isFlat = false; // Track shading type
 var isLightOn = true;
+var isPointLight = true; // Track light type
+var spotLightDirection = vec4(0.0, -1.0, 0.0, 0.0); // Direction for spot light
+var spotLightCutoff = Math.cos(radians(30.0)); // 30-degree cutoff angle
 var savedLightValues = {
     ambient: 0.5,
     diffuse: 0.5,
@@ -61,19 +64,19 @@ window.onload = function init()
 {
     // Create the objects
     teacupObj = teacup(36, 20);
-    teacupObj.Scale(0.8, 0.8, 0.8);
+    teacupObj.Scale(0.12, 0.12, 0.12);
     teacupPoints = teacupObj.Point;
     teacupNormals = teacupObj.Normal;
     teacupV = teacupPoints.length;
 
     torusObj = torus(0.5, 0.2, 32, 24);
-    torusObj.Scale(0.7, 0.7, 0.7);
+    torusObj.Scale(0.08, 0.08, 0.08);
     torusPoints = torusObj.Point;
     torusNormals = torusObj.Normal;
     torusV = torusPoints.length;
 
     plateObj = plate(1.2, 0.8, 0.5, 36);
-    plateObj.Scale(1.0, 0.7, 1.0);
+    plateObj.Scale(0.2, 0.08, 0.2);
     platePoints = plateObj.Point;
     plateNormals = plateObj.Normal;
     plateV = platePoints.length;
@@ -112,6 +115,21 @@ window.onload = function init()
 
     document.getElementById('rotate-z').addEventListener('click', function() {
         setActiveRotation('z');
+    });
+
+    // Add light type toggle event listeners
+    document.getElementById('point-light').addEventListener('click', function() {
+        isPointLight = true;
+        this.classList.add('active');
+        document.getElementById('spot-light').classList.remove('active');
+        recompute();
+    });
+
+    document.getElementById('spot-light').addEventListener('click', function() {
+        isPointLight = false;
+        this.classList.add('active');
+        document.getElementById('point-light').classList.remove('active');
+        recompute();
     });
 }
 
@@ -303,6 +321,11 @@ function configWebGL()
     modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
     projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
     normalMatrixLoc = gl.getUniformLocation(program, "normalMatrix");
+
+    // Add these lines after getting other uniform locations
+    gl.uniform1i(gl.getUniformLocation(program, "uIsPointLight"), isPointLight);
+    gl.uniform4fv(gl.getUniformLocation(program, "uSpotLightDirection"), flatten(spotLightDirection));
+    gl.uniform1f(gl.getUniformLocation(program, "uSpotLightCutoff"), spotLightCutoff);
 }
 
 // Render the graphics for viewing
@@ -332,6 +355,11 @@ function render()
     gl.uniform4fv(gl.getUniformLocation(program, "lightPos"), flatten(lightPos));
     gl.uniform1f(gl.getUniformLocation(program, "shininess"), shininess);
 
+    // Add these lines before drawing
+    gl.uniform1i(gl.getUniformLocation(program, "uIsPointLight"), isPointLight);
+    gl.uniform4fv(gl.getUniformLocation(program, "uSpotLightDirection"), flatten(spotLightDirection));
+    gl.uniform1f(gl.getUniformLocation(program, "uSpotLightCutoff"), spotLightCutoff);
+
     drawTeacup();
     drawTorus();
     drawPlate();
@@ -341,8 +369,8 @@ function render()
 function drawTeacup()
 {
     modelViewMatrix = lookAt(eye, at , up);
-    modelViewMatrix = mult(modelViewMatrix, translate(-2.0, 0, 0));
-    modelViewMatrix = mult(modelViewMatrix, rotateX(teacupTheta[0]));
+    modelViewMatrix = mult(modelViewMatrix, translate(1.2, 0.3, -0.5));
+    modelViewMatrix = mult(modelViewMatrix, rotateX(10+teacupTheta[0]));
     modelViewMatrix = mult(modelViewMatrix, rotateY(teacupTheta[1]));
     modelViewMatrix = mult(modelViewMatrix, rotateZ(teacupTheta[2]));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
@@ -357,8 +385,8 @@ function drawTeacup()
 function drawTorus()
 {
     modelViewMatrix = lookAt(eye, at , up);
-    modelViewMatrix = mult(modelViewMatrix, translate(0, 0.2, 0));
-    modelViewMatrix = mult(modelViewMatrix, rotateX(torusTheta[0]));
+    modelViewMatrix = mult(modelViewMatrix, translate(-0.2, -0.05, 0.1));
+    modelViewMatrix = mult(modelViewMatrix, rotateX(105 + torusTheta[0]));
     modelViewMatrix = mult(modelViewMatrix, rotateY(torusTheta[1]));
     modelViewMatrix = mult(modelViewMatrix, rotateZ(torusTheta[2]));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
@@ -373,8 +401,8 @@ function drawTorus()
 function drawPlate()
 {
     modelViewMatrix = lookAt(eye, at , up);
-    modelViewMatrix = mult(modelViewMatrix, translate(2.0, -0.2, 0));
-    modelViewMatrix = mult(modelViewMatrix, rotateX(plateTheta[0]));
+    modelViewMatrix = mult(modelViewMatrix, translate(-0.2, -0.25, 0));
+    modelViewMatrix = mult(modelViewMatrix, rotateX(15 +plateTheta[0]));
     modelViewMatrix = mult(modelViewMatrix, rotateY(plateTheta[1]));
     modelViewMatrix = mult(modelViewMatrix, rotateZ(plateTheta[2]));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
@@ -390,22 +418,24 @@ function recompute()
 {
     // Create the objects
     teacupObj = teacup(36, 20);
-    teacupObj.Scale(0.8, 0.8, 0.8);
+    teacupObj.Scale(0.12, 0.12, 0.12);
     teacupPoints = teacupObj.Point;
     teacupNormals = teacupObj.Normal;
     teacupV = teacupPoints.length;
 
     torusObj = torus(0.5, 0.2, 32, 24);
-    torusObj.Scale(0.7, 0.7, 0.7);
+    torusObj.Scale(0.08, 0.08, 0.08);
     torusPoints = torusObj.Point;
     torusNormals = torusObj.Normal;
     torusV = torusPoints.length;
 
     plateObj = plate(1.2, 0.8, 0.5, 36);
-    plateObj.Scale(1.0, 0.7, 1.0);
+    plateObj.Scale(0.2, 0.08, 0.2);
     platePoints = plateObj.Point;
     plateNormals = plateObj.Normal;
     plateV = platePoints.length;
+
+    totalV = teacupV + torusV + plateV;
 
     // Combine all points and normals
     var points = teacupPoints.concat(torusPoints, platePoints);
