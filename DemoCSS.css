@@ -161,7 +161,7 @@ body
 
 .light-circle-label {
 	color: white;
-	font-size: 14px;
+	font-size: 16px;
 	font-weight: bold;
 }
 
@@ -532,13 +532,34 @@ body
 }
 
 .color-picker {
-    width: 50px;
-    height: 50px;
+    width: 60px;
+    height: 60px;
+    padding: 0;
     border: none;
     border-radius: 50%;
-    padding: 0;
     cursor: pointer;
-    background-color: white;
+    margin-top: 5px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-color: transparent;
+}
+
+.color-picker::-webkit-color-swatch-wrapper {
+    padding: 0;
+    border-radius: 50%;
+}
+
+.color-picker::-webkit-color-swatch {
+    border: 2px solid #4a4e69;
+    border-radius: 50%;
+    padding: 0;
+}
+
+.color-picker::-moz-color-swatch {
+    border: 2px solid #4a4e69;
+    border-radius: 50%;
+    padding: 0;
 }
 
 .light-toggle {

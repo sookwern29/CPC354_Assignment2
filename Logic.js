@@ -9,9 +9,7 @@ var modelViewMatrixLoc, projectionMatrixLoc, normalMatrixLoc;
 var modelViewMatrix, projectionMatrix, nMatrix;
 
 // Variables referencing HTML elements
-var sliderAmbient, sliderDiffuse, sliderSpecular, sliderShininess;
 var sliderLightX, sliderLightY, sliderLightZ;
-var textAmbient, textDiffuse, textSpecular, textShininess;
 var textLightX, textLightY, textLightZ;
 var startBtn;
 
@@ -21,11 +19,10 @@ var animFrame = 0, animFlag = false;
 
 // Variables for lighting control
 var ambientProduct, diffuseProduct, specularProduct;
-var ambient = 0.5, diffuse = 0.5, specular = 0.5, shininess = 60;
 var lightPos = vec4(1.0, 1.0, 1.0, 0.0);
-var lightAmbient = vec4(ambient, ambient, ambient, 1.0);
-var lightDiffuse = vec4(diffuse, diffuse, diffuse, 1.0);
-var lightSpecular = vec4(specular, specular, specular, 1.0);
+var lightAmbient = vec4(0.5, 0.5, 0.5, 1.0);
+var lightDiffuse = vec4(0.5, 0.5, 0.5, 1.0);
+var lightSpecular = vec4(0.5, 0.5, 0.5, 1.0);
 
 var materialAmbient = vec4(0.5, 0.5, 1.0, 1.0);
 var materialDiffuse = vec4(0.0, 0.9, 1.0, 1.0);
@@ -171,52 +168,13 @@ window.onload = function init()
 function getUIElement()
 {
     canvas = document.getElementById("gl-canvas");
-    sliderAmbient = document.getElementById("slider-ambient");
-    sliderDiffuse = document.getElementById("slider-diffuse");
-    sliderSpecular = document.getElementById("slider-specular");
-    sliderShininess = document.getElementById("slider-shininess");
     sliderLightX = document.getElementById("slider-light-x");
     sliderLightY = document.getElementById("slider-light-y");
     sliderLightZ = document.getElementById("slider-light-z");
-    textAmbient = document.getElementById("text-ambient");
-    textDiffuse = document.getElementById("text-diffuse");
-    textSpecular = document.getElementById("text-specular");
-    textShininess = document.getElementById("text-shininess");
     textLightX = document.getElementById("text-light-x");
     textLightY = document.getElementById("text-light-y");
     textLightZ = document.getElementById("text-light-z");
     startBtn = document.getElementById("start-btn");
-
-    sliderAmbient.onchange = function(event) 
-	{
-		ambient = event.target.value;
-		textAmbient.innerHTML = ambient;
-        lightAmbient = vec4(ambient, ambient, ambient, 1.0);
-        recompute();
-    };
-
-    sliderDiffuse.onchange = function(event) 
-	{
-		diffuse = event.target.value;
-		textDiffuse.innerHTML = diffuse;
-        lightDiffuse = vec4(diffuse, diffuse, diffuse, 1.0);
-        recompute();
-    };
-
-    sliderSpecular.onchange = function(event) 
-	{
-		specular = event.target.value;
-		textSpecular.innerHTML = specular;
-        lightSpecular = vec4(specular, specular, specular, 1.0);
-        recompute();
-    };
-
-    sliderShininess.onchange = function(event) 
-	{
-		shininess = event.target.value;
-		textShininess.innerHTML = shininess;
-        recompute();
-    };
 
     sliderLightX.onchange = function(event) 
 	{
@@ -253,22 +211,9 @@ function getUIElement()
         document.getElementById('light-off').classList.remove('active');
         
         // Restore saved light values
-        ambient = savedLightValues.ambient;
-        diffuse = savedLightValues.diffuse;
-        specular = savedLightValues.specular;
-        
-        // Update UI
-        sliderAmbient.value = ambient;
-        sliderDiffuse.value = diffuse;
-        sliderSpecular.value = specular;
-        textAmbient.innerHTML = ambient;
-        textDiffuse.innerHTML = diffuse;
-        textSpecular.innerHTML = specular;
-        
-        // Update light values
-        lightAmbient = vec4(ambient, ambient, ambient, 1.0);
-        lightDiffuse = vec4(diffuse, diffuse, diffuse, 1.0);
-        lightSpecular = vec4(specular, specular, specular, 1.0);
+        lightAmbient = vec4(0.5, 0.5, 0.5, 1.0);
+        lightDiffuse = vec4(0.5, 0.5, 0.5, 1.0);
+        lightSpecular = vec4(0.5, 0.5, 0.5, 1.0);
         
         recompute();
     });
@@ -278,25 +223,7 @@ function getUIElement()
         this.classList.add('active');
         document.getElementById('light-on').classList.remove('active');
         
-        // Save current light values
-        savedLightValues.ambient = ambient;
-        savedLightValues.diffuse = diffuse;
-        savedLightValues.specular = specular;
-        
         // Set all light values to 0
-        ambient = 0;
-        diffuse = 0;
-        specular = 0;
-        
-        // Update UI
-        sliderAmbient.value = 0;
-        sliderDiffuse.value = 0;
-        sliderSpecular.value = 0;
-        textAmbient.innerHTML = "0";
-        textDiffuse.innerHTML = "0";
-        textSpecular.innerHTML = "0";
-        
-        // Update light values
         lightAmbient = vec4(0, 0, 0, 1.0);
         lightDiffuse = vec4(0, 0, 0, 1.0);
         lightSpecular = vec4(0, 0, 0, 1.0);
@@ -332,6 +259,34 @@ function getUIElement()
         document.getElementById('text-material-shininess').innerHTML = value;
         recompute();
     };
+
+    // Add light color picker handlers
+    document.getElementById('light-ambient-color').addEventListener('input', function(event) {
+        var color = event.target.value;
+        var r = parseInt(color.substr(1,2), 16) / 255;
+        var g = parseInt(color.substr(3,2), 16) / 255;
+        var b = parseInt(color.substr(5,2), 16) / 255;
+        lightAmbient = vec4(r, g, b, 1.0);
+        recompute();
+    });
+
+    document.getElementById('light-diffuse-color').addEventListener('input', function(event) {
+        var color = event.target.value;
+        var r = parseInt(color.substr(1,2), 16) / 255;
+        var g = parseInt(color.substr(3,2), 16) / 255;
+        var b = parseInt(color.substr(5,2), 16) / 255;
+        lightDiffuse = vec4(r, g, b, 1.0);
+        recompute();
+    });
+
+    document.getElementById('light-specular-color').addEventListener('input', function(event) {
+        var color = event.target.value;
+        var r = parseInt(color.substr(1,2), 16) / 255;
+        var g = parseInt(color.substr(3,2), 16) / 255;
+        var b = parseInt(color.substr(5,2), 16) / 255;
+        lightSpecular = vec4(r, g, b, 1.0);
+        recompute();
+    });
 }
 
 // Configure WebGL Settings
