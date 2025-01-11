@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8">
+	<title>CPC354 Demo</title>
+
+	<!-- Link CSS, JS, and WebGL -->
+	<!-- webgl-utils.js	: standard utilities from Google to set up a WebGL context -->
+	<!-- initShaders.js	: contains helper functions to compile and link WebGL shaders to the application -->
+	<!-- MV.js			: provides matrix and vector manipulation functions APIs for WebGL -->
+	<!-- DemoJS.js		: your JS file -->
+	<!-- DemoCSS.css	: your CSS file -->
+	<script type="text/javascript" src="Common/webgl-utils.js"></script>
+	<script type="text/javascript" src="Common/initShaders.js"></script>
+	<script type="text/javascript" src="Common/MV.js"></script>
+	<script type="text/javascript" src="Demo_7_LightSphere.js"></script>
+	<script type="text/javascript" src="Geometry.js"></script>
+	<link rel="stylesheet" type="text/css" href="DemoCSS.css">
+
+	<!-- Define the vertex shader -->
+	<script id="vertex-shader" type="x-shader/x-vertex">
+		// Declare the global variable(s) for draw calls
+		uniform mat4 projectionMatrix;
+		uniform mat4 modelViewMatrix;
+		uniform mat3 normalMatrix;
+		uniform vec4 ambientProduct;
+		uniform vec4 diffuseProduct;
+		uniform vec4 specularProduct;
+		uniform vec4 lightPos;
+		uniform float shininess;
+		
+		// Declare the input variable(s) to receive per-vertex data from the application
+		attribute vec4 vPosition;
+		attribute vec4 vColor;
+		attribute vec3 vNormal;
+		
+		// Declare the varying variable(s) to pass data to the fragment shader
+		varying vec4 fColor;
+
+		void main()
+		{
+			vec3 pos = (modelViewMatrix * vPosition).xyz;
+			vec3 light = lightPos.xyz;
+			vec3 L;
+
+			// check for directional light
+			if(lightPos.w == 0.0)
+				L = normalize(lightPos.xyz);
+			else
+				L = normalize(lightPos.xyz - pos);
+
+			vec3 E = -normalize(pos);
+			vec3 H = normalize(L + E);
+
+			// Transform vertex normal into eye coordinates
+			vec3 N = normalize(normalMatrix * vNormal.xyz);
+
+			// Compute terms in the illumination equation
+			vec4 ambient = ambientProduct;
+
+			float Kd = max(dot(L, N), 0.0);
+			vec4 diffuse = Kd * diffuseProduct;
+
+			float Ks = pow(max(dot(N, H), 0.0), shininess);
+			vec4 specular = Ks * specularProduct;
+
+			if(dot(L, N) < 0.0)
+			{
+				specular = vec4(0.0, 0.0, 0.0, 1.0);
+			}
+
+			gl_Position = projectionMatrix * modelViewMatrix * vPosition;
+			fColor = ambient + diffuse + specular;
+			fColor.a = 1.0;
+		}
+	</script>
+
+	<!-- Define the fragment shader -->
+	<script id="fragment-shader" type="x-shader/x-fragment">
+		precision mediump float;
+		varying vec4 fColor;
+
+		void main()
+		{
+			gl_FragColor = fColor;
+		}
+	</script>
+</head>
+
+<body>
+	<!-- Canvas for the graphic rendering -->
+	<div class="canvas">
+		<canvas id="gl-canvas" width="780" height="720">
+			Error: your browser doesn't support the HTML5 canvas element
+		</canvas>
+	</div>
+
+	<!-- Panel for parameter customization -->
+	<div class="panel">
+		<!-- Left section - Light -->
+		<div class="panel-section vertical-align">
+			<div class="title">Light</div>
+			
+			<!-- Light Toggle Section -->
+			<div class="light-toggle">
+				<div class="sub-title">Light Status:</div>
+				<div class="light-toggle-buttons">
+					<button class="light-btn" id="light-off">Off</button>
+					<button class="light-btn active" id="light-on">On</button>
+				</div>
+			</div>
+
+			<!-- Light Color Section -->
+			<div class="sub-title">Light Color:</div>
+			<div class="light-colors">
+				<div class="light-circle-container">
+					<span class="light-circle-label">Ambient</span>
+					<div class="light-circle ambient-circle"></div>
+				</div>
+				<div class="light-circle-container">
+					<span class="light-circle-label">Diffuse</span>
+					<div class="light-circle diffuse-circle"></div>
+				</div>
+				<div class="light-circle-container">
+					<span class="light-circle-label">Specular</span>
+					<div class="light-circle specular-circle"></div>
+				</div>
+			</div>
+
+			<!-- Light Position Section -->
+			<div class="sub-title">Light Position:</div>
+			<div class="light-position">
+				<!-- X-axis slider -->
+				<div class="slider-container">
+					<div class="slider-label">X-axis:</div>
+					<div class="slider">
+						<input class="slide" id="slider-light-x" type="range" min="-20" max="20" step="1" value="1">
+					</div>
+					<div class="slider-value" id="text-light-x">1</div>
+				</div>
+
+				<!-- Y-axis slider -->
+				<div class="slider-container">
+					<div class="slider-label">Y-axis:</div>
+					<div class="slider">
+						<input class="slide" id="slider-light-y" type="range" min="-20" max="20" step="1" value="1">
+					</div>
+					<div class="slider-value" id="text-light-y">1</div>
+				</div>
+
+				<!-- Z-axis slider -->
+				<div class="slider-container">
+					<div class="slider-label">Z-axis:</div>
+					<div class="slider">
+						<input class="slide" id="slider-light-z" type="range" min="-20" max="20" step="1" value="1">
+					</div>
+					<div class="slider-value" id="text-light-z">1</div>
+				</div>
+			</div>
+
+			<!-- Light Properties Section -->
+			<div class="sub-title">Light Properties:</div>
+			<div class="param-panel">
+				<!-- Ambient slider -->
+				<div class="slider-container">
+					<div class="slider-label">Ambient:</div>
+					<div class="slider">
+						<input class="slide" id="slider-ambient" type="range" min="0.1" max="1" step="0.1" value="0.5">
+					</div>
+					<div class="slider-value" id="text-ambient">0.5</div>
+				</div>
+
+				<!-- Diffuse slider -->
+				<div class="slider-container">
+					<div class="slider-label">Diffuse:</div>
+					<div class="slider">
+						<input class="slide" id="slider-diffuse" type="range" min="0.1" max="1" step="0.1" value="0.5">
+					</div>
+					<div class="slider-value" id="text-diffuse">0.5</div>
+				</div>
+
+				<!-- Specular slider -->
+				<div class="slider-container">
+					<div class="slider-label">Specular:</div>
+					<div class="slider">
+						<input class="slide" id="slider-specular" type="range" min="0.1" max="1" step="0.1" value="0.5">
+					</div>
+					<div class="slider-value" id="text-specular">0.5</div>
+				</div>
+
+				<!-- Shininess slider -->
+				<div class="slider-container">
+					<div class="slider-label">Shininess:</div>
+					<div class="slider">
+						<input class="slide" id="slider-shininess" type="range" min="10" max="100" step="10" value="60">
+					</div>
+					<div class="slider-value" id="text-shininess">60</div>
+				</div>
+			</div>
+
+			<!-- Divider -->
+			<div class="section-divider"></div>
+
+			<!-- Material Section -->
+			<div class="title">Material</div>
+
+			<!-- Shininess Section -->
+			<div class="sub-title">Shininess:</div>
+			<div class="slider-container">
+				<div class="slider">
+					<input class="slide" id="slider-material-shininess" type="range" min="1" max="100" step="1" value="51">
+				</div>
+				<div class="slider-value" id="text-material-shininess">51</div>
+			</div>
+
+			<!-- Material Color Section -->
+			<div class="sub-title">Material Color:</div>
+			<div class="material-colors">
+				<div class="material-circle-container">
+					<span class="light-circle-label">Ambient</span>
+					<div class="material-circle material-ambient-circle"></div>
+				</div>
+				<div class="material-circle-container">
+					<span class="light-circle-label">Diffuse</span>
+					<div class="material-circle material-diffuse-circle"></div>
+				</div>
+				<div class="material-circle-container">
+					<span class="light-circle-label">Specular</span>
+					<div class="material-circle material-specular-circle"></div>
+				</div>
+			</div>
+
+			<!-- Reflection Coefficient Section -->
+			<div class="sub-title">Reflection Coefficient:</div>
+			<div class="reflection-coefficient">
+				<div class="coefficient-slider">
+					<div class="coefficient-label">Ambient:</div>
+					<div class="slider">
+						<input class="slide" id="slider-ambient-coef" type="range" min="0" max="1" step="0.01" value="0.63">
+					</div>
+					<div class="coefficient-value" id="text-ambient-coef">0.63</div>
+				</div>
+
+				<div class="coefficient-slider">
+					<div class="coefficient-label">Diffuse:</div>
+					<div class="slider">
+						<input class="slide" id="slider-diffuse-coef" type="range" min="0" max="1" step="0.01" value="1">
+					</div>
+					<div class="coefficient-value" id="text-diffuse-coef">1</div>
+				</div>
+
+				<div class="coefficient-slider">
+					<div class="coefficient-label">Specular:</div>
+					<div class="slider">
+						<input class="slide" id="slider-specular-coef" type="range" min="0" max="1" step="0.01" value="1">
+					</div>
+					<div class="coefficient-value" id="text-specular-coef">1</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Right section - Camera Properties -->
+		<div class="panel-section vertical-align">
+			<div class="title">Camera Properties</div>
+			<div class="camera-properties">
+				<!-- Theta -->
+				<div class="camera-slider">
+					<div class="camera-label">Theta:</div>
+					<div class="slider">
+						<input class="slide" id="slider-theta" type="range" min="0" max="360" step="1" value="177">
+					</div>
+					<div class="camera-value" id="text-theta">177</div>
+				</div>
+
+				<!-- Phi -->
+				<div class="camera-slider">
+					<div class="camera-label">Phi:</div>
+					<div class="slider">
+						<input class="slide" id="slider-phi" type="range" min="-180" max="180" step="1" value="-107">
+					</div>
+					<div class="camera-value" id="text-phi">-107</div>
+				</div>
+
+				<!-- Radius -->
+				<div class="camera-slider">
+					<div class="camera-label">Radius:</div>
+					<div class="slider">
+						<input class="slide" id="slider-radius" type="range" min="1" max="50" step="1" value="22">
+					</div>
+					<div class="camera-value" id="text-radius">22</div>
+				</div>
+
+				<!-- FOV -->
+				<div class="camera-slider">
+					<div class="camera-label">FOV:</div>
+					<div class="slider">
+						<input class="slide" id="slider-fov" type="range" min="10" max="120" step="1" value="37">
+					</div>
+					<div class="camera-value" id="text-fov">37</div>
+				</div>
+
+				<!-- Near -->
+				<div class="camera-slider">
+					<div class="camera-label">Near:</div>
+					<div class="slider">
+						<input class="slide" id="slider-near" type="range" min="0.1" max="10" step="0.1" value="1.6">
+					</div>
+					<div class="camera-value" id="text-near">1.6</div>
+				</div>
+
+				<!-- Far -->
+				<div class="camera-slider">
+					<div class="camera-label">Far:</div>
+					<div class="slider">
+						<input class="slide" id="slider-far" type="range" min="1" max="100" step="0.1" value="3">
+					</div>
+					<div class="camera-value" id="text-far">3</div>
+				</div>
+			</div>
+
+			<!-- Background Color Section -->
+			<div class="background-color">
+				<div class="sub-title">Background Color</div>
+				<div class="color-picker-container">
+					<input type="color" id="background-color-picker" class="color-picker" value="#FFFFFF">
+				</div>
+			</div>
+
+			<!-- Shading Type Section -->
+			<div class="shading-type">
+				<div class="sub-title">Shading Type</div>
+				<div class="shading-buttons">
+					<button class="shading-btn" id="flat-shading">Flat</button>
+					<button class="shading-btn active" id="smooth-shading">Smooth</button>
+				</div>
+			</div>
+
+			<!-- Rotation Axis Section -->
+			<div class="rotation-axis">
+				<div class="sub-title">Rotation Axis</div>
+				<div class="rotation-toggles">
+					<div class="rotation-toggle">
+						<div class="rotation-circle" id="rotate-x">
+							<div class="rotation-dot"></div>
+						</div>
+						<span class="rotation-label">X-Axis</span>
+					</div>
+					<div class="rotation-toggle">
+						<div class="rotation-circle" id="rotate-y">
+							<div class="rotation-dot"></div>
+						</div>
+						<span class="rotation-label">Y-Axis</span>
+					</div>
+					<div class="rotation-toggle">
+						<div class="rotation-circle active" id="rotate-z">
+							<div class="rotation-dot"></div>
+						</div>
+						<span class="rotation-label">Z-Axis</span>
+					</div>
+				</div>
+			</div>
+
+			<!-- Animation Button Section -->
+			<div class="animation-container">
+				<input id="start-btn" class="anim-btn" type="button" value="Start Animation">
+			</div>
+		</div>
+	</div>
+
+	
+</body>
+
+</html>
