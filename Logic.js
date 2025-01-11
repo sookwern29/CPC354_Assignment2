@@ -54,6 +54,29 @@ var savedLightValues = {
     specular: 0.5
 };
 var activeRotationAxis = 'z'; // Default to Z-axis rotation
+var selectedObject = 'teacup'; // Default selected object
+
+// Material properties for each object
+var materials = {
+    teacup: {
+        ambient: vec4(0.5, 0.5, 1.0, 1.0),
+        diffuse: vec4(0.0, 0.9, 1.0, 1.0),
+        specular: vec4(1.0, 1.0, 1.0, 1.0),
+        shininess: 51
+    },
+    torus: {
+        ambient: vec4(0.3, 0.6, 1.0, 1.0),
+        diffuse: vec4(0.3, 0.6, 1.0, 1.0),
+        specular: vec4(1.0, 1.0, 1.0, 1.0),
+        shininess: 51
+    },
+    plate: {
+        ambient: vec4(0.4, 0.7, 1.0, 1.0),
+        diffuse: vec4(0.4, 0.7, 1.0, 1.0),
+        specular: vec4(1.0, 1.0, 1.0, 1.0),
+        shininess: 51
+    }
+};
 
 /*-----------------------------------------------------------------------------------*/
 // WebGL Utilities
@@ -130,6 +153,17 @@ window.onload = function init()
         this.classList.add('active');
         document.getElementById('point-light').classList.remove('active');
         recompute();
+    });
+
+    // Add object selection event listeners
+    document.getElementById('teacup-select').addEventListener('click', function() {
+        selectObject('teacup');
+    });
+    document.getElementById('torus-select').addEventListener('click', function() {
+        selectObject('torus');
+    });
+    document.getElementById('plate-select').addEventListener('click', function() {
+        selectObject('plate');
     });
 }
 
@@ -269,6 +303,35 @@ function getUIElement()
         
         recompute();
     });
+
+    // Add material coefficient slider handlers
+    document.getElementById('slider-ambient-coef').onchange = function(event) {
+        var value = parseFloat(event.target.value);
+        materials[selectedObject].ambient = vec4(value, value, value, 1.0);
+        document.getElementById('text-ambient-coef').innerHTML = value.toFixed(2);
+        recompute();
+    };
+
+    document.getElementById('slider-diffuse-coef').onchange = function(event) {
+        var value = parseFloat(event.target.value);
+        materials[selectedObject].diffuse = vec4(value, value, value, 1.0);
+        document.getElementById('text-diffuse-coef').innerHTML = value.toFixed(2);
+        recompute();
+    };
+
+    document.getElementById('slider-specular-coef').onchange = function(event) {
+        var value = parseFloat(event.target.value);
+        materials[selectedObject].specular = vec4(value, value, value, 1.0);
+        document.getElementById('text-specular-coef').innerHTML = value.toFixed(2);
+        recompute();
+    };
+
+    document.getElementById('slider-material-shininess').onchange = function(event) {
+        var value = parseInt(event.target.value);
+        materials[selectedObject].shininess = value;
+        document.getElementById('text-material-shininess').innerHTML = value;
+        recompute();
+    };
 }
 
 // Configure WebGL Settings
@@ -345,23 +408,58 @@ function render()
     projectionMatrix = ortho(-3, 3, -2, 2, -10, 10);
     gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 
-    // Compute the ambient, diffuse, and specular values
-    ambientProduct = mult(lightAmbient, materialAmbient);
-    diffuseProduct = mult(lightDiffuse, materialDiffuse);
-    specularProduct = mult(lightSpecular, materialSpecular);
-    gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
-    gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct));
-    gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
+    // Set global light properties
     gl.uniform4fv(gl.getUniformLocation(program, "lightPos"), flatten(lightPos));
-    gl.uniform1f(gl.getUniformLocation(program, "shininess"), shininess);
-
-    // Add these lines before drawing
     gl.uniform1i(gl.getUniformLocation(program, "uIsPointLight"), isPointLight);
     gl.uniform4fv(gl.getUniformLocation(program, "uSpotLightDirection"), flatten(spotLightDirection));
     gl.uniform1f(gl.getUniformLocation(program, "uSpotLightCutoff"), spotLightCutoff);
 
+    // Draw teacup with its material
+    materialAmbient = materials.teacup.ambient;
+    materialDiffuse = materials.teacup.diffuse;
+    materialSpecular = materials.teacup.specular;
+    shininess = materials.teacup.shininess;
+    
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+    
+    gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
+    gl.uniform1f(gl.getUniformLocation(program, "shininess"), shininess);
     drawTeacup();
+
+    // Draw torus with its material
+    materialAmbient = materials.torus.ambient;
+    materialDiffuse = materials.torus.diffuse;
+    materialSpecular = materials.torus.specular;
+    shininess = materials.torus.shininess;
+    
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+    
+    gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
+    gl.uniform1f(gl.getUniformLocation(program, "shininess"), shininess);
     drawTorus();
+
+    // Draw plate with its material
+    materialAmbient = materials.plate.ambient;
+    materialDiffuse = materials.plate.diffuse;
+    materialSpecular = materials.plate.specular;
+    shininess = materials.plate.shininess;
+    
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+    
+    gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
+    gl.uniform1f(gl.getUniformLocation(program, "shininess"), shininess);
     drawPlate();
 }
 
@@ -551,6 +649,45 @@ function setActiveRotation(axis) {
     
     // Add active class to selected circle
     document.getElementById('rotate-' + axis).classList.add('active');
+}
+
+// Add this function to handle object selection
+function selectObject(objectName) {
+    selectedObject = objectName;
+    
+    // Update UI to show active object
+    document.getElementById('teacup-select').classList.remove('active');
+    document.getElementById('torus-select').classList.remove('active');
+    document.getElementById('plate-select').classList.remove('active');
+    document.getElementById(objectName + '-select').classList.add('active');
+
+    // Update material sliders to show selected object's values
+    updateMaterialUI();
+}
+
+// Add this function to update material UI
+function updateMaterialUI() {
+    var material = materials[selectedObject];
+    
+    // Update material color circles
+    document.querySelector('.material-ambient-circle').style.backgroundColor = 
+        `rgb(${material.ambient[0]*255}, ${material.ambient[1]*255}, ${material.ambient[2]*255})`;
+    document.querySelector('.material-diffuse-circle').style.backgroundColor = 
+        `rgb(${material.diffuse[0]*255}, ${material.diffuse[1]*255}, ${material.diffuse[2]*255})`;
+    
+    // Update material sliders
+    document.getElementById('slider-material-shininess').value = material.shininess;
+    document.getElementById('text-material-shininess').innerHTML = material.shininess;
+    
+    // Update reflection coefficient sliders
+    document.getElementById('slider-ambient-coef').value = material.ambient[0];
+    document.getElementById('text-ambient-coef').innerHTML = material.ambient[0].toFixed(2);
+    
+    document.getElementById('slider-diffuse-coef').value = material.diffuse[0];
+    document.getElementById('text-diffuse-coef').innerHTML = material.diffuse[0].toFixed(2);
+    
+    document.getElementById('slider-specular-coef').value = material.specular[0];
+    document.getElementById('text-specular-coef').innerHTML = material.specular[0].toFixed(2);
 }
 
 /*-----------------------------------------------------------------------------------*/
