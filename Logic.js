@@ -19,7 +19,7 @@ var animFrame = 0, animFlag = false;
 
 // Variables for lighting control
 var ambientProduct, diffuseProduct, specularProduct;
-var lightPos = vec4(1.0, 1.0, 1.0, 0.0);
+var lightPos = vec4(1.0, 1.0, 1.0, 0.0); //For Point Light
 var lightAmbient = vec4(0.5, 0.5, 0.5, 1.0);
 var lightDiffuse = vec4(0.5, 0.5, 0.5, 1.0);
 var lightSpecular = vec4(0.5, 0.5, 0.5, 1.0);
@@ -43,8 +43,11 @@ var teacupV, torusV, plateV, totalV;
 let isFlat = false; // Track shading type
 var isLightOn = true;
 var isPointLight = true; // Track light type
-var spotLightDirection = vec4(0.0, -1.0, 0.0, 0.0); // Direction for spot light
+var spotlightPosition = vec4(1.0, 7.0, 0.0, 1.0);
+var spotLightDirection = vec4(0.0, -1.0, 0.0, 1.0); // Direction for spot light
 var spotLightCutoff = Math.cos(radians(30.0)); // 30-degree cutoff angle
+let spotlightExponent = 10.0;
+// let spotlightCutoff = 0.9;
 var savedLightValues = {
     ambient: 0.5,
     diffuse: 0.5,
@@ -108,6 +111,25 @@ window.onload = function init()
     configWebGL();
     render();
 
+    // Add these to your initialization
+const spotlightExponentLoc = gl.getUniformLocation(program, "spotlightExponent");
+const spotlightCutoffLoc = gl.getUniformLocation(program, "uSpotLightCutoff");
+
+// Add these event listeners
+document.getElementById('slider-spotlight-cutoff').onchange = function(event) {
+    spotlightCutoff = parseFloat(event.target.value);
+    document.getElementById('text-spotlight-cutoff').innerHTML = spotlightCutoff.toFixed(2);
+    gl.uniform1f(spotlightCutoffLoc, spotlightCutoff);
+    recompute();
+};
+
+document.getElementById('slider-spotlight-exponent').onchange = function(event) {
+    spotlightExponent = parseFloat(event.target.value);
+    document.getElementById('text-spotlight-exponent').innerHTML = spotlightExponent.toFixed(1);
+    gl.uniform1f(spotlightExponentLoc, spotlightExponent);
+    recompute();
+};
+
     // Add this in your init() function or where you set up event listeners
     document.getElementById('flat-shading').addEventListener('click', function() {
         isFlat = true;
@@ -137,9 +159,49 @@ window.onload = function init()
         setActiveRotation('z');
     });
 
+    //Spotlight Position
+    document.getElementById('slider-spotlight-x').onchange = function(event) {
+        spotlightPosition[0] = event.target.value;
+        document.getElementById('text-spotlight-x').innerHTML = spotlightPosition[0];
+        recompute();
+    };
+    
+    document.getElementById('slider-spotlight-y').onchange = function(event) {
+        spotlightPosition[1] = event.target.value;
+        document.getElementById('text-spotlight-y').innerHTML = spotlightPosition[1];
+        recompute();
+    };
+    
+    document.getElementById('slider-spotlight-z').onchange = function(event) {
+        spotlightPosition[2] = event.target.value;
+        document.getElementById('text-spotlight-z').innerHTML = spotlightPosition[2];
+        recompute();
+    };
+
+    //Spotlight Direction
+    document.getElementById('slider-spotlight-dir-x').onchange = function(event) {
+        spotLightDirection[0] = event.target.value;
+        document.getElementById('text-spotlight-dir-x').innerHTML = spotLightDirection[0].toFixed(1);
+        recompute();
+    };
+    
+    document.getElementById('slider-spotlight-dir-y').onchange = function(event) {
+        spotLightDirection[1] = event.target.value;
+        document.getElementById('text-spotlight-dir-y').innerHTML = spotLightDirection[1].toFixed(1);
+        recompute();
+    };
+    
+    document.getElementById('slider-spotlight-dir-z').onchange = function(event) {
+        spotLightDirection[2] = event.target.value;
+        document.getElementById('text-spotlight-dir-z').innerHTML = spotLightDirection[2].toFixed(1);
+        recompute();
+    };
+
     // Add light type toggle event listeners
     document.getElementById('point-light').addEventListener('click', function() {
         isPointLight = true;
+        document.querySelector('.spotlight-controls').style.display = 'none';
+        document.querySelector('.pointlight-controls').style.display = 'block';
         this.classList.add('active');
         document.getElementById('spot-light').classList.remove('active');
         recompute();
@@ -147,6 +209,8 @@ window.onload = function init()
 
     document.getElementById('spot-light').addEventListener('click', function() {
         isPointLight = false;
+        document.querySelector('.spotlight-controls').style.display = 'block';
+        document.querySelector('.pointlight-controls').style.display = 'none';
         this.classList.add('active');
         document.getElementById('point-light').classList.remove('active');
         recompute();
@@ -175,6 +239,8 @@ function getUIElement()
     textLightY = document.getElementById("text-light-y");
     textLightZ = document.getElementById("text-light-z");
     startBtn = document.getElementById("start-btn");
+    // const spotlightExponentLoc = gl.getUniformLocation(program, "spotlightExponent");
+    // const spotlightCutoffLoc = gl.getUniformLocation(program, "uSpotLightCutoff");
 
     sliderLightX.onchange = function(event) 
 	{
@@ -287,6 +353,20 @@ function getUIElement()
         lightSpecular = vec4(r, g, b, 1.0);
         recompute();
     });
+
+    document.getElementById('slider-spotlight-cutoff').onchange = function(event) {
+        spotlightCutoff = parseFloat(event.target.value);
+        document.getElementById('text-spotlight-cutoff').innerHTML = spotlightCutoff.toFixed(2);
+        gl.uniform1f(spotlightCutoffLoc, spotlightCutoff);
+        recompute();
+    };
+    
+    document.getElementById('slider-spotlight-exponent').onchange = function(event) {
+        spotlightExponent = parseFloat(event.target.value);
+        document.getElementById('text-spotlight-exponent').innerHTML = spotlightExponent.toFixed(1);
+        gl.uniform1f(spotlightExponentLoc, spotlightExponent);
+        recompute();
+    };
 }
 
 // Configure WebGL Settings
@@ -366,6 +446,7 @@ function render()
     // Set global light properties
     gl.uniform4fv(gl.getUniformLocation(program, "lightPos"), flatten(lightPos));
     gl.uniform1i(gl.getUniformLocation(program, "uIsPointLight"), isPointLight);
+    gl.uniform4fv(gl.getUniformLocation(program, "spotlightPosition"), flatten(spotlightPosition));
     gl.uniform4fv(gl.getUniformLocation(program, "uSpotLightDirection"), flatten(spotLightDirection));
     gl.uniform1f(gl.getUniformLocation(program, "uSpotLightCutoff"), spotLightCutoff);
 
@@ -416,14 +497,18 @@ function render()
     gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
     gl.uniform1f(gl.getUniformLocation(program, "shininess"), shininess);
     drawPlate();
+
+    if (!isPointLight) {
+       drawSpotlightMarker();
+    }
 }
 
 // Draw the teacup
 function drawTeacup()
 {
-    modelViewMatrix = lookAt(eye, at , up);
+    modelViewMatrix = lookAt(eye, at, up);
     modelViewMatrix = mult(modelViewMatrix, translate(1.2, 0.3, -0.5));
-    modelViewMatrix = mult(modelViewMatrix, rotateX(10+teacupTheta[0]));
+    modelViewMatrix = mult(modelViewMatrix, rotateX(10 + teacupTheta[0]));
     modelViewMatrix = mult(modelViewMatrix, rotateY(teacupTheta[1]));
     modelViewMatrix = mult(modelViewMatrix, rotateZ(teacupTheta[2]));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
@@ -437,9 +522,9 @@ function drawTeacup()
 // Draw the torus
 function drawTorus()
 {
-    modelViewMatrix = lookAt(eye, at , up);
+    modelViewMatrix = lookAt(eye, at, up);
     modelViewMatrix = mult(modelViewMatrix, translate(-0.2, -0.05, 0.1));
-    modelViewMatrix = mult(modelViewMatrix, rotateX(105 + torusTheta[0]));
+    modelViewMatrix = mult(modelViewMatrix, rotateX(12 + torusTheta[0]));
     modelViewMatrix = mult(modelViewMatrix, rotateY(torusTheta[1]));
     modelViewMatrix = mult(modelViewMatrix, rotateZ(torusTheta[2]));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
@@ -453,9 +538,9 @@ function drawTorus()
 // Draw the plate
 function drawPlate()
 {
-    modelViewMatrix = lookAt(eye, at , up);
+    modelViewMatrix = lookAt(eye, at, up);
     modelViewMatrix = mult(modelViewMatrix, translate(-0.2, -0.25, 0));
-    modelViewMatrix = mult(modelViewMatrix, rotateX(15 +plateTheta[0]));
+    modelViewMatrix = mult(modelViewMatrix, rotateX(15 + plateTheta[0]));//15
     modelViewMatrix = mult(modelViewMatrix, rotateY(plateTheta[1]));
     modelViewMatrix = mult(modelViewMatrix, rotateZ(plateTheta[2]));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
@@ -511,21 +596,24 @@ function animUpdate()
 
     // Update rotation based on active axis
     switch(activeRotationAxis) {
-        case 'x':
+        case 'x': {
             teacupTheta[0] -= 1;
             torusTheta[0] -= 1;
             plateTheta[0] -= 1;
             break;
-        case 'y':
+        }
+        case 'y': {
             teacupTheta[1] -= 1;
-            torusTheta[1] -= 1;
+            torusTheta[1] += 1;
             plateTheta[1] -= 1;
             break;
-        case 'z':
+        }
+        case 'z': {
             teacupTheta[2] -= 1;
             torusTheta[2] -= 1;
             plateTheta[2] -= 1;
             break;
+        }
     }
 
     drawTeacup();
@@ -643,6 +731,28 @@ function updateMaterialUI() {
     
     document.getElementById('slider-specular-coef').value = material.specular[0];
     document.getElementById('text-specular-coef').innerHTML = material.specular[0].toFixed(2);
+}
+
+// Add a function to draw a small sphere at the spotlight position
+function drawSpotlightMarker() {
+    // Save current modelView matrix
+    var savedModelView = modelViewMatrix;
+    
+    // Move to spotlight position
+    modelViewMatrix = mult(modelViewMatrix, translate(
+        spotlightPosition[0], 
+        spotlightPosition[1], 
+        spotlightPosition[2]
+    ));
+    
+    // Scale down to make a small marker
+    modelViewMatrix = mult(modelViewMatrix, scale(0.1, 0.1, 0.1));
+    
+    // Draw a small sphere or cube here
+    // ... your drawing code ...
+    
+    // Restore modelView matrix
+    modelViewMatrix = savedModelView;
 }
 
 /*-----------------------------------------------------------------------------------*/

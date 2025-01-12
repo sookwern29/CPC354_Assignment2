@@ -479,13 +479,13 @@ function torus(majorRadius, minorRadius, majorSegments, minorSegments) {
 
             // Calculate vertex position
             var x = (majorRadius + minorRadius * cosMI) * cosMA;
-            var y = (majorRadius + minorRadius * cosMI) * sinMA;
-            var z = minorRadius * sinMI;
+            var z = (majorRadius + minorRadius * cosMI) * sinMA;
+            var y = minorRadius * sinMI;
 
             // Calculate normal
             var nx = cosMI * cosMA;
-            var ny = cosMI * sinMA;
-            var nz = sinMI;
+            var nz = cosMI * sinMA;
+            var ny = sinMI;
             
             // Normalize the normal vector
             var length = Math.sqrt(nx*nx + ny*ny + nz*nz);
@@ -550,7 +550,7 @@ function teacup(numSlices, numStacks) {
     var height = 0.5;
     var topRadius = 0.4;
     var bottomRadius = 0.25;
-    var thickness = 0.03;
+    // var thickness = 0.03;
 
     // Generate vertices first
     for (var i = 0; i <= stacks; i++) {
