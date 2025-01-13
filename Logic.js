@@ -45,9 +45,7 @@ var isLightOn = true;
 var isPointLight = true; // Track light type
 var spotlightPosition = vec4(1.0, 7.0, 0.0, 1.0);
 var spotLightDirection = vec4(0.0, -1.0, 0.0, 1.0); // Direction for spot light
-var spotLightCutoff = Math.cos(radians(30.0)); // 30-degree cutoff angle
-let spotlightExponent = 10.0;
-// let spotlightCutoff = 0.9;
+let spotLightCutoff = 30.0; // 30-degree cutoff angle
 var savedLightValues = {
     ambient: 0.5,
     diffuse: 0.5,
@@ -62,19 +60,19 @@ var materials = {
         ambient: vec4(0.5, 0.5, 1.0, 1.0),
         diffuse: vec4(0.0, 0.9, 1.0, 1.0),
         specular: vec4(1.0, 1.0, 1.0, 1.0),
-        shininess: 51
+        shininess: 20
     },
     torus: {
         ambient: vec4(0.3, 0.6, 1.0, 1.0),
         diffuse: vec4(0.3, 0.6, 1.0, 1.0),
         specular: vec4(1.0, 1.0, 1.0, 1.0),
-        shininess: 51
+        shininess: 20
     },
     plate: {
         ambient: vec4(0.4, 0.7, 1.0, 1.0),
         diffuse: vec4(0.4, 0.7, 1.0, 1.0),
         specular: vec4(1.0, 1.0, 1.0, 1.0),
-        shininess: 51
+        shininess: 20
     }
 };
 
@@ -111,24 +109,12 @@ window.onload = function init()
     configWebGL();
     render();
 
-    // Add these to your initialization
-const spotlightExponentLoc = gl.getUniformLocation(program, "spotlightExponent");
-const spotlightCutoffLoc = gl.getUniformLocation(program, "uSpotLightCutoff");
-
-// Add these event listeners
-document.getElementById('slider-spotlight-cutoff').onchange = function(event) {
-    spotlightCutoff = parseFloat(event.target.value);
-    document.getElementById('text-spotlight-cutoff').innerHTML = spotlightCutoff.toFixed(2);
-    gl.uniform1f(spotlightCutoffLoc, spotlightCutoff);
-    recompute();
-};
-
-document.getElementById('slider-spotlight-exponent').onchange = function(event) {
-    spotlightExponent = parseFloat(event.target.value);
-    document.getElementById('text-spotlight-exponent').innerHTML = spotlightExponent.toFixed(1);
-    gl.uniform1f(spotlightExponentLoc, spotlightExponent);
-    recompute();
-};
+    // Add these event listeners
+    document.getElementById('slider-spotlight-cutoff').onchange = function(event) {
+        spotLightCutoff = parseFloat(event.target.value);
+        document.getElementById('text-spotlight-cutoff').innerHTML = spotLightCutoff.toFixed(2);
+        recompute();
+    };
 
     // Add this in your init() function or where you set up event listeners
     document.getElementById('flat-shading').addEventListener('click', function() {
@@ -216,6 +202,21 @@ document.getElementById('slider-spotlight-exponent').onchange = function(event) 
         recompute();
     });
 
+    // Background customization
+    document.getElementById('color-bg').addEventListener('click', function() {
+        this.classList.add('active');
+        document.getElementById('image-bg').classList.remove('active');
+        document.getElementById('color-bg-section').style.display = 'flex';
+        document.getElementById('image-bg-section').style.display = 'none';
+    });
+    
+    document.getElementById('image-bg').addEventListener('click', function() {
+        this.classList.add('active');
+        document.getElementById('color-bg').classList.remove('active');
+        document.getElementById('color-bg-section').style.display = 'none';
+        document.getElementById('image-bg-section').style.display = 'flex';
+    });
+
     // Add object selection event listeners
     document.getElementById('teacup-select').addEventListener('click', function() {
         selectObject('teacup');
@@ -239,8 +240,6 @@ function getUIElement()
     textLightY = document.getElementById("text-light-y");
     textLightZ = document.getElementById("text-light-z");
     startBtn = document.getElementById("start-btn");
-    // const spotlightExponentLoc = gl.getUniformLocation(program, "spotlightExponent");
-    // const spotlightCutoffLoc = gl.getUniformLocation(program, "uSpotLightCutoff");
 
     sliderLightX.onchange = function(event) 
 	{
@@ -353,20 +352,6 @@ function getUIElement()
         lightSpecular = vec4(r, g, b, 1.0);
         recompute();
     });
-
-    document.getElementById('slider-spotlight-cutoff').onchange = function(event) {
-        spotlightCutoff = parseFloat(event.target.value);
-        document.getElementById('text-spotlight-cutoff').innerHTML = spotlightCutoff.toFixed(2);
-        gl.uniform1f(spotlightCutoffLoc, spotlightCutoff);
-        recompute();
-    };
-    
-    document.getElementById('slider-spotlight-exponent').onchange = function(event) {
-        spotlightExponent = parseFloat(event.target.value);
-        document.getElementById('text-spotlight-exponent').innerHTML = spotlightExponent.toFixed(1);
-        gl.uniform1f(spotlightExponentLoc, spotlightExponent);
-        recompute();
-    };
 }
 
 // Configure WebGL Settings
@@ -422,8 +407,6 @@ function configWebGL()
 
     // Add these lines after getting other uniform locations
     gl.uniform1i(gl.getUniformLocation(program, "uIsPointLight"), isPointLight);
-    gl.uniform4fv(gl.getUniformLocation(program, "uSpotLightDirection"), flatten(spotLightDirection));
-    gl.uniform1f(gl.getUniformLocation(program, "uSpotLightCutoff"), spotLightCutoff);
 }
 
 // Render the graphics for viewing
@@ -524,8 +507,9 @@ function drawTorus()
 {
     modelViewMatrix = lookAt(eye, at, up);
     modelViewMatrix = mult(modelViewMatrix, translate(-0.2, -0.05, 0.1));
+
     modelViewMatrix = mult(modelViewMatrix, rotateX(12 + torusTheta[0]));
-    modelViewMatrix = mult(modelViewMatrix, rotateY(torusTheta[1]));
+    modelViewMatrix = mult(modelViewMatrix, rotateY(-torusTheta[1]));
     modelViewMatrix = mult(modelViewMatrix, rotateZ(torusTheta[2]));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
 

@@ -33,7 +33,6 @@
 		uniform vec4 spotlightPosition;
 		uniform vec4 uSpotLightDirection;
 		uniform float uSpotLightCutoff;
-		uniform float spotlightExponent;
 		
 		// Declare the input variable(s) to receive per-vertex data from the application
 		attribute vec4 vPosition;
@@ -83,10 +82,10 @@
 				vec3 H = normalize(L + E);
 				
 				float spotEffect = dot(-L, normalize(uSpotLightDirection.xyz));
-				
-				if (spotEffect > uSpotLightCutoff) {
+
+				if (spotEffect > cos(radians(uSpotLightCutoff))) {
 					// Inside spotlight cone
-					float spotIntensity = pow(spotEffect, spotlightExponent);
+					float spotIntensity = pow(clamp(spotEffect, 0.0, 1.0), 2.0);
 					
 					// Calculate basic lighting
 					float Kd = max(dot(L, N), 0.0);
@@ -231,21 +230,10 @@
 				<div class="slider-label">Cutoff Angle:</div>
 				<div class="slider">
 					<input class="slide" id="slider-spotlight-cutoff" 
-						   type="range" min="0.5" max="0.98" 
-						   step="0.01" value="0.9">
+						   type="range" min="1" max="50" 
+						   step="1" value="30.0">
 				</div>
-				<div class="slider-value" id="text-spotlight-cutoff">0.9</div>
-			</div>
-		
-			<!-- Spotlight Sharpness -->
-			<div class="slider-container">
-				<div class="slider-label">Sharpness:</div>
-				<div class="slider">
-					<input class="slide" id="slider-spotlight-exponent" 
-						   type="range" min="1" max="32" 
-						   step="1" value="10">
-				</div>
-				<div class="slider-value" id="text-spotlight-exponent">10</div>
+				<div class="slider-value" id="text-spotlight-cutoff">30.0</div>
 			</div>
 			</div>
 
@@ -414,10 +402,19 @@
 			<div class="section-divider"></div>
 
 			<!-- Background Color Section -->
-			<div class="background-color">
-				<div class="sub-title">Background Color</div>
-				<div class="color-picker-container">
+			<div class="background">
+				<div class="sub-title">Background:</div>
+				<div class="background-toggle">
+					<button class="background-type-btn active" id="color-bg">Color</button>
+					<button class="background-type-btn" id="image-bg">Image</button>
+				</div>
+
+				<div class="color-picker-container" id="color-bg-section">
 					<input type="color" id="background-color-picker" class="color-picker" value="#FFFFFF">
+				</div>
+				<div class="background-image-container" id="image-bg-section" style="display: none;">
+					<input type="file" id="background-image-upload" accept="image/*" class="file-input">
+					<p id="remove-bkg-btn">Remove Background</p>
 				</div>
 			</div>
 

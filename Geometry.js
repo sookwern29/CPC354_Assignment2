@@ -537,6 +537,7 @@ function torus(majorRadius, minorRadius, majorSegments, minorSegments) {
     torusData.Translate = translate;
     torusData.Rotate = rotate;
     torusData.Scale = scale;
+
     return torusData;
 }
 
