@@ -306,14 +306,34 @@ function getUIElement()
 
     document.getElementById('slider-diffuse-coef').onchange = function(event) {
         var value = parseFloat(event.target.value);
-        materials[selectedObject].diffuse = vec4(value, value, value, 1.0);
+        var colorHex = document.getElementById('material-diffuse-color').value;
+        var color = hexToRgb(colorHex);
+        
+        // Apply coefficient while maintaining color ratios
+        materials[selectedObject].diffuse = vec4(
+            color.r * value,
+            color.g * value,
+            color.b * value,
+            1.0
+        );
+        // materials[selectedObject].diffuse = vec4(value, value, value, 1.0);
         document.getElementById('text-diffuse-coef').innerHTML = value.toFixed(2);
         recompute();
     };
 
     document.getElementById('slider-specular-coef').onchange = function(event) {
         var value = parseFloat(event.target.value);
-        materials[selectedObject].specular = vec4(value, value, value, 1.0);
+        var colorHex = document.getElementById('material-specular-color').value;
+        var color = hexToRgb(colorHex);
+        
+        // Apply coefficient while maintaining color ratios
+        materials[selectedObject].specular = vec4(
+            color.r * value,
+            color.g * value,
+            color.b * value,
+            1.0
+        );
+        // materials[selectedObject].specular = vec4(value, value, value, 1.0);
         document.getElementById('text-specular-coef').innerHTML = value.toFixed(2);
         recompute();
     };
@@ -350,6 +370,33 @@ function getUIElement()
         var g = parseInt(color.substr(3,2), 16) / 255;
         var b = parseInt(color.substr(5,2), 16) / 255;
         lightSpecular = vec4(r, g, b, 1.0);
+        recompute();
+    });
+
+    document.getElementById('material-diffuse-color').addEventListener('input', function(event) {
+        var color = hexToRgb(event.target.value);
+        var coef = parseFloat(document.getElementById('slider-diffuse-coef').value);
+        
+        materials[selectedObject].diffuse = vec4(
+            color.r * coef,
+            color.g * coef,
+            color.b * coef,
+            1.0
+        );
+        recompute();
+    });
+
+    document.getElementById('material-specular-color').addEventListener('input', function(event) {
+        var color = hexToRgb(event.target.value);
+        var coef = parseFloat(document.getElementById('slider-specular-coef').value);
+        
+        materials[selectedObject].specular = vec4(
+            color.r * coef,
+            color.g * coef,
+            color.b * coef,
+            1.0
+        );
+
         recompute();
     });
 }
@@ -573,9 +620,7 @@ function recompute()
     render();
 }
 
-// Update the animation frame
-function animUpdate()
-{
+function animUpdate() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // Update rotation based on active axis
@@ -600,8 +645,52 @@ function animUpdate()
         }
     }
 
+    // Reapply material properties for teacup
+    materialAmbient = materials.teacup.ambient;
+    materialDiffuse = materials.teacup.diffuse;
+    materialSpecular = materials.teacup.specular;
+    shininess = materials.teacup.shininess;
+    
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+    
+    gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
+    gl.uniform1f(gl.getUniformLocation(program, "shininess"), shininess);
     drawTeacup();
+
+    // Reapply material properties for torus
+    materialAmbient = materials.torus.ambient;
+    materialDiffuse = materials.torus.diffuse;
+    materialSpecular = materials.torus.specular;
+    shininess = materials.torus.shininess;
+    
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+    
+    gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
+    gl.uniform1f(gl.getUniformLocation(program, "shininess"), shininess);
     drawTorus();
+
+    // Reapply material properties for plate
+    materialAmbient = materials.plate.ambient;
+    materialDiffuse = materials.plate.diffuse;
+    materialSpecular = materials.plate.specular;
+    shininess = materials.plate.shininess;
+    
+    ambientProduct = mult(lightAmbient, materialAmbient);
+    diffuseProduct = mult(lightDiffuse, materialDiffuse);
+    specularProduct = mult(lightSpecular, materialSpecular);
+    
+    gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
+    gl.uniform1f(gl.getUniformLocation(program, "shininess"), shininess);
     drawPlate();
 
     animFrame = window.requestAnimationFrame(animUpdate);
@@ -692,30 +781,35 @@ function selectObject(objectName) {
     updateMaterialUI();
 }
 
-// Add this function to update material UI
 function updateMaterialUI() {
     var material = materials[selectedObject];
-    
-    // Update material color circles
-    document.querySelector('.material-ambient-circle').style.backgroundColor = 
-        `rgb(${material.ambient[0]*255}, ${material.ambient[1]*255}, ${material.ambient[2]*255})`;
-    document.querySelector('.material-diffuse-circle').style.backgroundColor = 
-        `rgb(${material.diffuse[0]*255}, ${material.diffuse[1]*255}, ${material.diffuse[2]*255})`;
-    
+
+    // Safely update ambient color circle
+    var ambientCircle = document.querySelector('.material-ambient-circle');
+    if (ambientCircle) {
+        ambientCircle.style.backgroundColor = `rgb(${material.ambient[0] * 255}, ${material.ambient[1] * 255}, ${material.ambient[2] * 255})`;
+    }
+
+    // Safely update diffuse color circle
+    var diffuseCircle = document.querySelector('.material-diffuse-circle');
+    if (diffuseCircle) {
+        diffuseCircle.style.backgroundColor = `rgb(${material.diffuse[0] * 255}, ${material.diffuse[1] * 255}, ${material.diffuse[2] * 255})`;
+    }
+
     // Update material sliders
     document.getElementById('slider-material-shininess').value = material.shininess;
     document.getElementById('text-material-shininess').innerHTML = material.shininess;
-    
-    // Update reflection coefficient sliders
+
     document.getElementById('slider-ambient-coef').value = material.ambient[0];
     document.getElementById('text-ambient-coef').innerHTML = material.ambient[0].toFixed(2);
-    
+
     document.getElementById('slider-diffuse-coef').value = material.diffuse[0];
     document.getElementById('text-diffuse-coef').innerHTML = material.diffuse[0].toFixed(2);
-    
+
     document.getElementById('slider-specular-coef').value = material.specular[0];
     document.getElementById('text-specular-coef').innerHTML = material.specular[0].toFixed(2);
 }
+
 
 // Add a function to draw a small sphere at the spotlight position
 function drawSpotlightMarker() {
@@ -737,6 +831,19 @@ function drawSpotlightMarker() {
     
     // Restore modelView matrix
     modelViewMatrix = savedModelView;
+}
+
+function hexToRgb(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16) / 255,
+        g: parseInt(result[2], 16) / 255,
+        b: parseInt(result[3], 16) / 255
+    } : null;
+}
+
+function rgbToHex(r, g, b) {
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 }
 
 /*-----------------------------------------------------------------------------------*/
