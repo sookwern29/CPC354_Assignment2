@@ -99,8 +99,8 @@ body
 .anim-btn {
     width: 270px;
     height: 70px;
-    background: #34a0a4;
-    border: 5px solid #99d98c;
+    background: #022639;
+    border: 5px solid #4a4e69;
     border-radius: 10px;
     color: #ffffff;
     text-align: center;
@@ -112,11 +112,12 @@ body
 
 .anim-btn:hover {
     animation: bounce 1s;
+
 }
 
 .anim-btn:active {
-    background-color: #21ff94;
-    box-shadow: 0 2px #666666;
+    background-color: #2196F3;
+    box-shadow: 0 2px #022639;
     transform: translateY(2px);
 }
 
@@ -299,8 +300,8 @@ body
 	margin: 0px 0px 20px 0px;
 	width: 270px;
 	height: 70px;
-	background: #34a0a4;
-	border: 5px solid #99d98c;
+	background: #2196F3;
+	border: 5px solid #9ed1fb;
 	border-radius: 10px;
 	color: #ffffff;
 	text-align: center;
@@ -316,8 +317,8 @@ body
 
 .anim-btn:active
 {
-  background-color 	: #21ff94;
-  box-shadow 		: 0 2px #666666;
+  background-color 	: #666666;
+  box-shadow 		: 0 2px #2196F3;
   transform 		: translateY(2px);
 }
 

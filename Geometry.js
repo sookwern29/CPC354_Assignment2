@@ -541,7 +541,7 @@ function torus(majorRadius, minorRadius, majorSegments, minorSegments) {
     return torusData;
 }
 
-function teacup(numSlices, numStacks) {
+function teacup(numSlices, numStacks, topRadius, bottomRadius) {
     var teacupPoints = [], teacupNormals = [], teacupData = {};
     var finalPoints = [], finalNormals = [];
     
@@ -549,9 +549,6 @@ function teacup(numSlices, numStacks) {
     var stacks = numStacks || 20;
     
     var height = 0.5;
-    var topRadius = 0.4;
-    var bottomRadius = 0.25;
-    // var thickness = 0.03;
 
     // Generate vertices first
     for (var i = 0; i <= stacks; i++) {
