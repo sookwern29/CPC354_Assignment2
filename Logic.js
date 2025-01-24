@@ -82,6 +82,22 @@ var theta=0, phi=0, radius=4, fov=11, near=1.6, far=3;
 var backgroundImage = new Image();
 var hasBackgroundImage = false;
 
+// Add these material presets after the materials object (around line 77)
+const materialPresets = {
+    dull: {
+        ambient: vec4(0.1, 0.1, 0.1, 1.0),
+        diffuse: vec4(0.2, 0.2, 0.2, 1.0),
+        specular: vec4(0.1, 0.1, 0.1, 1.0),
+        shininess: 1
+    },
+    metallic: {
+        ambient: vec4(0.3, 0.3, 0.3, 1.0),
+        diffuse: vec4(0.7, 0.7, 0.7, 1.0),
+        specular: vec4(1.0, 1.0, 1.0, 1.0),
+        shininess: 200  // Increased for more focused highlights
+    }
+};
+
 /*-----------------------------------------------------------------------------------*/
 // WebGL Utilities
 /*-----------------------------------------------------------------------------------*/
@@ -91,7 +107,7 @@ window.onload = function init()
 {
     // Create the objects
     teacupObj = teacup(36, 20, 0.4, 0.25);
-    teacupObj.Scale(0.8, 0.8, 0.8);
+    teacupObj.Scale(0.08, 0.08, 0.08);
     teacupPoints = teacupObj.Point;
     teacupNormals = teacupObj.Normal;
     teacupV = teacupPoints.length;
@@ -250,16 +266,13 @@ window.onload = function init()
         const file = event.target.files[0];
         if (file) {
             const reader = new FileReader();
-            reader.onload = function(event) {
-                backgroundImage.onload = function() {
-                    hasBackgroundImage = true;
-                    gl.clearColor(0.0, 0.0, 0.0, 0.0); // Make background transparent
-                    canvas.style.backgroundImage = `url(${backgroundImage.src})`;
-                    canvas.style.backgroundSize = 'cover';
-                    canvas.style.backgroundPosition = 'center';
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    backgroundImage = img;
                     render();
                 };
-                backgroundImage.src = event.target.result;
+                img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
@@ -273,6 +286,50 @@ window.onload = function init()
         const colorValue = document.getElementById('background-color-picker').value;
         const color = hexToRgb(colorValue);
         gl.clearColor(color.r, color.g, color.b, 1.0);
+        render();
+    });
+
+    // Add material presets event listeners
+    document.getElementById('dull-material').addEventListener('click', function() {
+        // Apply dull material properties to selected object
+        materials[selectedObject].ambient = materialPresets.dull.ambient;
+        materials[selectedObject].diffuse = materialPresets.dull.diffuse;
+        materials[selectedObject].specular = materialPresets.dull.specular;
+        globalShininess = materialPresets.dull.shininess;
+        
+        // Update UI
+        updateMaterialUI();
+        render();
+    });
+
+    // document.getElementById('slider-material-shininess').addEventListener('input', function(event) {
+    //     const value = parseInt(event.target.value);
+    //     materials[selectedObject].shininess = value;
+    //     globalShininess = value;
+        
+    //     // Update UI display text
+    //     document.getElementById('text-material-shininess').textContent = value;
+        
+    //     // Update material properties and render
+    //     updateMaterialUI();
+    //     recompute();
+    //     render();
+    // });
+
+    // Add material type slider handler
+    document.getElementById('slider-material-type').addEventListener('input', function(event) {
+        const value = parseInt(event.target.value);
+        const t = value / 100;
+        
+        // Update material properties
+        materials[selectedObject].ambient = interpolateMaterial(value).ambient;
+        materials[selectedObject].diffuse = interpolateMaterial(value).diffuse;
+        materials[selectedObject].specular = interpolateMaterial(value).specular;
+        
+        globalShininess = interpolateMaterial(value).shininess;
+        
+        // Update UI
+        updateMaterialUI();
         render();
     });
 }
@@ -394,9 +451,9 @@ function getUIElement()
         recompute();
     };
 
-    document.getElementById('slider-material-shininess').onchange = function(event) {
+    document.getElementById('slider-shininess').onchange = function(event) {
         globalShininess = parseFloat(event.target.value);
-        document.getElementById('text-material-shininess').innerHTML = globalShininess;
+        document.getElementById('text-shininess').innerHTML = globalShininess;
         render();
     };
 
@@ -656,7 +713,7 @@ function recompute()
 {
     // Create the objects
     teacupObj = teacup(36, 20, 0.4, 0.25);
-    teacupObj.Scale(0.12, 0.12, 0.12);
+    teacupObj.Scale(0.08, 0.08, 0.08);
     teacupPoints = teacupObj.Point;
     teacupNormals = teacupObj.Normal;
     teacupV = teacupPoints.length;
@@ -924,8 +981,8 @@ function updateMaterialUI() {
     }
 
     // Update material sliders
-    document.getElementById('slider-material-shininess').value = globalShininess;
-    document.getElementById('text-material-shininess').innerHTML = globalShininess;
+    document.getElementById('slider-shininess').value = globalShininess;
+    document.getElementById('text-material-shininess').textContent = globalShininess;
 
     document.getElementById('slider-ambient-coef').value = material.ambient[0];
     document.getElementById('text-ambient-coef').innerHTML = material.ambient[0].toFixed(2);
@@ -1065,5 +1122,31 @@ function updateCamera() {
         near = parseFloat(document.getElementById("slider-near").value);
         far = parseFloat(document.getElementById("slider-far").value);
     });
+
+function interpolateMaterial(value) {
+    const t = value / 100;
+    
+    return {
+        ambient: vec4(
+            0.1 + (0.2 * t),  // 0.1 to 0.3
+            0.1 + (0.2 * t),
+            0.1 + (0.2 * t),
+            1.0
+        ),
+        diffuse: vec4(
+            0.2 + (0.5 * t),  // 0.2 to 0.7
+            0.2 + (0.5 * t),
+            0.2 + (0.5 * t),
+            1.0
+        ),
+        specular: vec4(
+            0.1 + (0.9 * t),  // 0.1 to 1.0 (high specular for metallic)
+            0.1 + (0.9 * t),
+            0.1 + (0.9 * t),
+            1.0
+        ),
+        shininess: 1 + (299 * t)  // 1 to 300 (much higher shininess range)
+    };
+}
 
 /*-----------------------------------------------------------------------------------*/

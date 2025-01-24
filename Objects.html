@@ -281,9 +281,9 @@
 			<div class="sub-title">Shininess:</div>
 			<div class="slider-container">
 				<div class="slider">
-					<input class="slide" id="slider-material-shininess" type="range" min="1" max="100" step="1" value="51">
+					<input class="slide" id="slider-shininess" type="range" min="1" max="100" step="1" value="51">
 				</div>
-				<div class="slider-value" id="text-material-shininess">51</div>
+				<div class="slider-value" id="text-shininess">51</div>
 			</div>
 			</div>
 
@@ -301,6 +301,14 @@
 			<!-- Material Section -->
 			<div class="title">Material</div>
 
+			<!-- <div class="sub-title">Shininess</div>
+			<div class="slider-container">
+				<div class="slider">
+				<input class="slide" id="slider-material-shininess" type="range" min="0" max="100" step="1" value="0">
+				<div class="slider-value" id="text-material-shininess">51</div>
+			</div>
+			</div> -->
+
 			<!-- Material Color Section -->
 			<div class="sub-title">Material Color:</div>
 			<div class="material-colors">
@@ -317,6 +325,7 @@
 					<input type="color" id="material-specular-color" class="color-picker" value="#FFFFFF">
 				</div>
 			</div>
+
 
 			<!-- Reflection Coefficient Section -->
 			<div class="sub-title">Reflection Coefficient:</div>
@@ -391,7 +400,7 @@
 				<div class="camera-slider">
 					<div class="camera-label">Near:</div>
 					<div class="slider">
-						<input class="slide" id="slider-near" type="range" min="0.1" max="10" step="0.1" value="1.6">
+						<input class="slide" id="slider-near" type="range" min="0.1" max="2" step="0.1" value="1.6">
 					</div>
 					<div class="camera-value" id="text-near">1.6</div>
 				</div>
@@ -400,7 +409,7 @@
 				<div class="camera-slider">
 					<div class="camera-label">Far:</div>
 					<div class="slider">
-						<input class="slide" id="slider-far" type="range" min="1" max="100" step="0.1" value="3">
+						<input class="slide" id="slider-far" type="range" min="1" max="20" step="0.1" value="3">
 					</div>
 					<div class="camera-value" id="text-far">3</div>
 				</div>
