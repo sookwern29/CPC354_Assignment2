@@ -121,6 +121,7 @@ window.onload = function init()
         isFlat = true;
         this.classList.add('active');
         document.getElementById('smooth-shading').classList.remove('active');
+        console.log("Shading mode:", isFlat); // Debug
         // Recompute normals for flat shading
         recomputeNormals();
     });
@@ -129,6 +130,7 @@ window.onload = function init()
         isFlat = false;
         this.classList.add('active');
         document.getElementById('flat-shading').classList.remove('active');
+        console.log("Shading mode:", isFlat); // Debug
         // Recompute normals for smooth shading
         recomputeNormals();
     });
@@ -296,10 +298,18 @@ function getUIElement()
         recompute();
     });
 
-    // Add material coefficient slider handlers
     document.getElementById('slider-ambient-coef').onchange = function(event) {
         var value = parseFloat(event.target.value);
-        materials[selectedObject].ambient = vec4(value, value, value, 1.0);
+        var colorHex = document.getElementById('material-ambient-color').value;
+        var color = hexToRgb(colorHex);
+        
+        // Apply coefficient while maintaining color ratios
+        materials[selectedObject].ambient = vec4(
+            color.r * value,
+            color.g * value,
+            color.b * value,
+            1.0
+        );
         document.getElementById('text-ambient-coef').innerHTML = value.toFixed(2);
         recompute();
     };
@@ -370,6 +380,19 @@ function getUIElement()
         var g = parseInt(color.substr(3,2), 16) / 255;
         var b = parseInt(color.substr(5,2), 16) / 255;
         lightSpecular = vec4(r, g, b, 1.0);
+        recompute();
+    });
+
+    document.getElementById('material-ambient-color').addEventListener('input', function(event) {
+        var color = hexToRgb(event.target.value);
+        var coef = parseFloat(document.getElementById('slider-ambient-coef').value);
+        
+        materials[selectedObject].diffuse = vec4(
+            color.r * coef,
+            color.g * coef,
+            color.b * coef,
+            1.0
+        );
         recompute();
     });
 
@@ -696,62 +719,123 @@ function animUpdate() {
     animFrame = window.requestAnimationFrame(animUpdate);
 }
 
-// Add this function to compute flat shading normals
-function computeFlatNormals(points) {
+function computeFlatNormals(vertices) {
     let normals = [];
-    // Process triangles (every 3 points)
-    for(let i = 0; i < points.length; i += 9) {
-        // Get three points of the triangle
-        let p1 = vec3(points[i], points[i+1], points[i+2]);
-        let p2 = vec3(points[i+3], points[i+4], points[i+5]);
-        let p3 = vec3(points[i+6], points[i+7], points[i+8]);
+    // Process three vertices at a time for each triangle
+    for (let i = 0; i < vertices.length; i += 9) {
+        let p1 = vec3(vertices[i], vertices[i + 1], vertices[i + 2]);
+        let p2 = vec3(vertices[i + 3], vertices[i + 4], vertices[i + 5]);
+        let p3 = vec3(vertices[i + 6], vertices[i + 7], vertices[i + 8]);
         
-        // Compute the normal for this triangle
+        // Calculate face normal using cross product
         let v1 = subtract(p2, p1);
         let v2 = subtract(p3, p1);
         let normal = normalize(cross(v1, v2));
         
-        // Use the same normal for all three vertices
-        for(let j = 0; j < 3; j++) {
+        // Same normal for all three vertices of the triangle
+        for (let j = 0; j < 3; j++) {
             normals.push(normal[0], normal[1], normal[2]);
         }
     }
     return normals;
 }
 
-// Modify your recomputeNormals function to handle both shading types
-function recomputeNormals() {
-    // Clear existing points and normals
-    points = [];
-    normals = [];
+function computeSmoothNormals(vertices) {
+    // Create map to store vertex normals
+    let vertexNormals = new Map();
     
-    // Get points from your geometry functions
-    let teacupPoints = teacup();
-    let torusPoints = torus();
-    let platePoints = plate();
-    
-    // Combine all points
-    points = points.concat(teacupPoints, torusPoints, platePoints);
-    
-    if(isFlat) {
-        // Compute flat shading normals
-        normals = computeFlatNormals(points);
-    } else {
-        // Your existing smooth shading normal computation
-        // This should be your current normal calculation code
-        for(let i = 0; i < points.length; i += 3) {
-            let p = vec3(points[i], points[i+1], points[i+2]);
-            let n = normalize(p);
-            normals.push(n[0], n[1], n[2]);
+    // Process triangles
+    for (let i = 0; i < vertices.length; i += 9) {
+        let p1 = vec3(vertices[i], vertices[i + 1], vertices[i + 2]);
+        let p2 = vec3(vertices[i + 3], vertices[i + 4], vertices[i + 5]);
+        let p3 = vec3(vertices[i + 6], vertices[i + 7], vertices[i + 8]);
+        
+        // Calculate face normal
+        let v1 = subtract(p2, p1);
+        let v2 = subtract(p3, p1);
+        let faceNormal = normalize(cross(v1, v2));
+        
+        // Add face normal contribution to each vertex
+        for (let j = 0; j < 3; j++) {
+            let vertex = vec3(vertices[i + j*3], vertices[i + j*3 + 1], vertices[i + j*3 + 2]);
+            let key = `${vertex[0]},${vertex[1]},${vertex[2]}`;
+            
+            if (!vertexNormals.has(key)) {
+                vertexNormals.set(key, vec3(0, 0, 0));
+            }
+            let currentNormal = vertexNormals.get(key);
+            vertexNormals.set(key, add(currentNormal, faceNormal));
         }
     }
     
-    // Update the buffers
-    gl.bindBuffer(gl.ARRAY_BUFFER, nBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(normals), gl.STATIC_DRAW);
+    // Build final normal array
+    let normals = [];
+    for (let i = 0; i < vertices.length; i += 3) {
+        let vertex = vec3(vertices[i], vertices[i + 1], vertices[i + 2]);
+        let key = `${vertex[0]},${vertex[1]},${vertex[2]}`;
+        let normal = normalize(vertexNormals.get(key));
+        normals.push(normal[0], normal[1], normal[2]);
+    }
     
-    gl.bindBuffer(gl.ARRAY_BUFFER, vBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, flatten(points), gl.STATIC_DRAW);
+    return normals;
+}
+
+function recomputeNormals() {
+    // Recreate objects with current parameters
+    teacupObj = teacup(36, 20);
+    teacupObj.Scale(0.12, 0.12, 0.12);
+    teacupPoints = teacupObj.Point;
+    
+    torusObj = torus(0.5, 0.2, 32, 24);
+    torusObj.Scale(0.08, 0.08, 0.08);
+    torusPoints = torusObj.Point;
+    
+    plateObj = plate(1.2, 0.8, 0.5, 36);
+    plateObj.Scale(0.2, 0.08, 0.2);
+    platePoints = plateObj.Point;
+
+    if (!isFlat) {
+        teacupNormals = computeSmoothNormals(teacupPoints, teacupObj.Indices);
+        torusNormals = computeSmoothNormals(torusPoints, torusObj.Indices);
+        plateNormals = computeSmoothNormals(platePoints, plateObj.Indices);
+    } else {
+        teacupNormals = computeFlatNormals(teacupPoints);
+        torusNormals = computeFlatNormals(torusPoints);
+        plateNormals = computeFlatNormals(platePoints);
+    }    
+    
+    // Combine all points
+    let allPoints = teacupPoints.concat(torusPoints, platePoints);
+    
+    // Extract vertex positions for normal calculation
+    let vertices = [];
+    for (let i = 0; i < allPoints.length; i++) {
+        vertices.push(allPoints[i][0], allPoints[i][1], allPoints[i][2]);
+    }
+    
+    // Compute normals based on shading type
+    let normals = isFlat ? 
+        computeFlatNormals(vertices) : 
+        computeSmoothNormals(vertices);
+    
+    // Update buffers
+    gl.bindBuffer(gl.ARRAY_BUFFER, pBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(allPoints), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vPosition);
+    
+    // Convert normals to vec3 array
+    let normalVecs = [];
+    for (let i = 0; i < normals.length; i += 3) {
+        normalVecs.push(vec3(normals[i], normals[i+1], normals[i+2]));
+    }
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, nBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(normalVecs), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(vNormal, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vNormal);
+    
+    render();
 }
 
 // Add this function to handle rotation axis changes
