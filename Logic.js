@@ -78,6 +78,10 @@ var materials = {
 
 var theta=0, phi=0, radius=4, fov=11, near=1.6, far=3;
 
+// Add at the top with other global variables
+var backgroundImage = new Image();
+var hasBackgroundImage = false;
+
 /*-----------------------------------------------------------------------------------*/
 // WebGL Utilities
 /*-----------------------------------------------------------------------------------*/
@@ -237,6 +241,37 @@ window.onload = function init()
     // Add background color picker handler
     document.getElementById('background-color-picker').addEventListener('input', function(event) {
         var color = hexToRgb(event.target.value);
+        gl.clearColor(color.r, color.g, color.b, 1.0);
+        render();
+    });
+
+    // Add in getUIElement() function after the background color picker handler
+    document.getElementById('background-image-upload').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                backgroundImage.onload = function() {
+                    hasBackgroundImage = true;
+                    gl.clearColor(0.0, 0.0, 0.0, 0.0); // Make background transparent
+                    canvas.style.backgroundImage = `url(${backgroundImage.src})`;
+                    canvas.style.backgroundSize = 'cover';
+                    canvas.style.backgroundPosition = 'center';
+                    render();
+                };
+                backgroundImage.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Add remove background handler
+    document.getElementById('remove-bkg-btn').addEventListener('click', function() {
+        hasBackgroundImage = false;
+        canvas.style.backgroundImage = 'none';
+        // Restore the previous background color
+        const colorValue = document.getElementById('background-color-picker').value;
+        const color = hexToRgb(colorValue);
         gl.clearColor(color.r, color.g, color.b, 1.0);
         render();
     });
@@ -492,15 +527,19 @@ function configWebGL()
 // Render the graphics for viewing
 function render()
 {
-    // Cancel the animation frame before performing any graphic rendering
-    if(animFlag)
-    {
+    if(animFlag) {
         animFlag = false;
         window.cancelAnimationFrame(animFrame);
     }
     
-    // Clear the color buffer and the depth buffer before rendering a new frame
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // Set clear color based on whether we have a background image
+    if (!hasBackgroundImage) {
+        const colorValue = document.getElementById('background-color-picker').value;
+        const color = hexToRgb(colorValue);
+        gl.clearColor(color.r, color.g, color.b, 1.0);
+    }
 
     // Updated projection matrix with larger viewing volume
    // projectionMatrix = ortho(-3, 3, -2, 2, -10, 10);
