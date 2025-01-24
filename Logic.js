@@ -6,7 +6,7 @@
 var canvas, gl, program;
 var pBuffer, nBuffer, vPosition, vNormal;
 var modelViewMatrixLoc, projectionMatrixLoc, normalMatrixLoc;
-var modelViewMatrix, projectionMatrix, nMatrix;
+var modelViewMatrix, projectionMatrix = ortho(-3, 3, -2, 2, -10, 10), nMatrix;
 
 // Variables referencing HTML elements
 var sliderLightX, sliderLightY, sliderLightZ;
@@ -76,6 +76,8 @@ var materials = {
     }
 };
 
+var theta=0, phi=0, radius=5, fov=37, near=1.6, far=3;
+
 /*-----------------------------------------------------------------------------------*/
 // WebGL Utilities
 /*-----------------------------------------------------------------------------------*/
@@ -107,6 +109,8 @@ window.onload = function init()
     // WebGL setups
     getUIElement();
     configWebGL();
+    addEventListeners();
+    updateCamera();
     render();
 
     // Add these event listeners
@@ -470,7 +474,7 @@ function render()
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // Updated projection matrix with larger viewing volume
-    projectionMatrix = ortho(-3, 3, -2, 2, -10, 10);
+   // projectionMatrix = ortho(-3, 3, -2, 2, -10, 10);
     gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 
     // Set global light properties
@@ -845,5 +849,98 @@ function hexToRgb(hex) {
 function rgbToHex(r, g, b) {
     return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
 }
+
+function addEventListeners() {
+    document.getElementById("slider-theta").addEventListener("input", function () {
+        theta = parseFloat(this.value);
+        document.getElementById("text-theta").innerText = theta;
+        updateCamera();
+    });
+
+    document.getElementById("slider-phi").addEventListener("input", function () {
+        phi = parseFloat(this.value);
+        document.getElementById("text-phi").innerText = phi;
+        updateCamera();
+    });
+
+    document.getElementById("slider-radius").addEventListener("input", function () {
+        radius = parseFloat(this.value);
+        document.getElementById("text-radius").innerText = radius;
+        updateCamera();
+    });
+
+    document.getElementById("slider-fov").addEventListener("input", function () {
+        fov = parseFloat(this.value);
+        document.getElementById("text-fov").innerText = fov;
+        updateCamera();
+    });
+
+    document.getElementById("slider-near").addEventListener("input", function () {
+        near = parseFloat(this.value);
+        document.getElementById("text-near").innerText = near;
+        updateCamera();
+    });
+
+    document.getElementById("slider-far").addEventListener("input", function () {
+        far = parseFloat(this.value);
+        document.getElementById("text-far").innerText = far;
+        updateCamera();
+    });
+}
+
+function perspective(fov, aspect, near, far) {
+    let f = 1.0 / Math.tan(radians(fov) / 2);
+    return mat4(
+        f / aspect, 0, 0, 0,
+        0, f, 0, 0,
+        0, 0, (far + near) / (near - far), (2 * far * near) / (near - far),
+        0, 0, -1, 0
+    );
+}
+
+function updateCamera() {
+    if (!gl || !projectionMatrixLoc || !modelViewMatrixLoc) {
+        console.error("WebGL is not initialized! updateCamera() aborted.");
+        return;
+    }
+    let thetaRad = (theta * Math.PI) / 180; // Convert degrees to radians
+    let phiRad = (phi * Math.PI) / 180;
+
+    // Convert spherical coordinates to Cartesian coordinates
+    eye = vec3(
+        radius * Math.cos(phiRad) * Math.sin(thetaRad),
+        radius * Math.sin(phiRad),
+        radius * Math.cos(phiRad) * Math.cos(thetaRad)
+    );
+
+    if (phi > 90 || phi < -90) {
+        up = vec3(0.0, -1.0, 0.0); // Flip the up vector when looking upside-down
+    } else {
+        up = vec3(0.0, 1.0, 0.0); // Keep normal up vector
+    }
+
+    // Ensure camera is looking at the scene
+    modelViewMatrix = lookAt(eye, at, up);
+    
+    // Update WebGL uniform matrix
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+
+    // Update perspective projection based on FOV
+    let aspectRatio = canvas.width / canvas.height; // Maintain aspect ratio
+    projectionMatrix = perspective(fov, aspectRatio, near, far);
+    gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
+
+    // Re-render the scene
+    render();
+}
+
+    document.addEventListener("DOMContentLoaded", function () {
+        theta = parseFloat(document.getElementById("slider-theta").value);
+        phi = parseFloat(document.getElementById("slider-phi").value);
+        radius = parseFloat(document.getElementById("slider-radius").value);
+        fov = parseFloat(document.getElementById("slider-fov").value);
+        near = parseFloat(document.getElementById("slider-near").value);
+        far = parseFloat(document.getElementById("slider-far").value);
+    });
 
 /*-----------------------------------------------------------------------------------*/
