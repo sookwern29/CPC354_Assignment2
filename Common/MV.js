@@ -1160,3 +1160,13 @@ function normalMatrix(m, flag) {
     m[8], m[9], m[10]);
   return inverse(transpose(a));
 }
+
+// Define the scalem function if it's not already available
+function scalem(x, y, z) {
+  return mat4.fromValues(
+      x, 0, 0, 0,
+      0, y, 0, 0,
+      0, 0, z, 0,
+      0, 0, 0, 1
+  );
+}

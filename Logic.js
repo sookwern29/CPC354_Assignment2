@@ -20,9 +20,9 @@ var animFrame = 0, animFlag = false;
 // Variables for lighting control
 var ambientProduct, diffuseProduct, specularProduct;
 var lightPos = vec4(1.0, 1.0, 1.0, 0.0); //For Point Light
-var lightAmbient = vec4(0.5, 0.5, 0.5, 1.0);
-var lightDiffuse = vec4(0.5, 0.5, 0.5, 1.0);
-var lightSpecular = vec4(0.5, 0.5, 0.5, 1.0);
+var lightAmbient = vec4(139/255, 67/255, 67/255, 1.0);
+var lightDiffuse = vec4(184/255, 112/255, 112/255, 1.0);
+var lightSpecular = vec4(128/255, 128/255, 0.0, 1.0);
 
 var materialAmbient = vec4(0.5, 0.5, 1.0, 1.0);
 var materialDiffuse = vec4(0.0, 0.9, 1.0, 1.0);
@@ -276,9 +276,9 @@ function getUIElement()
         document.getElementById('light-off').classList.remove('active');
         
         // Restore saved light values
-        lightAmbient = vec4(0.5, 0.5, 0.5, 1.0);
-        lightDiffuse = vec4(0.5, 0.5, 0.5, 1.0);
-        lightSpecular = vec4(0.5, 0.5, 0.5, 1.0);
+        lightAmbient = vec4(139/255, 67/255, 67/255, 1.0);
+        lightDiffuse = vec4(184/255, 112/255, 112/255, 1.0);
+        lightSpecular = vec4(128/255, 128/255, 0.0, 1.0);
         
         recompute();
     });
@@ -482,8 +482,8 @@ function render()
     drawPlate();
 
     if (!isPointLight) {
-       drawSpotlightMarker();
-    }
+        drawSpotlightMarker();
+     }
 }
 
 // Draw the teacup
@@ -719,24 +719,173 @@ function updateMaterialUI() {
 
 // Add a function to draw a small sphere at the spotlight position
 function drawSpotlightMarker() {
-    // Save current modelView matrix
-    var savedModelView = modelViewMatrix;
+    // Scene boundaries
+    const sceneBounds = 1.5;
     
-    // Move to spotlight position
-    modelViewMatrix = mult(modelViewMatrix, translate(
-        spotlightPosition[0], 
-        spotlightPosition[1], 
-        spotlightPosition[2]
-    ));
+    // Calculate marker position
+    let markerPos = vec3(spotlightPosition[0], spotlightPosition[1], spotlightPosition[2]);
     
-    // Scale down to make a small marker
-    modelViewMatrix = mult(modelViewMatrix, scale(0.1, 0.1, 0.1));
-    
-    // Draw a small sphere or cube here
-    // ... your drawing code ...
-    
-    // Restore modelView matrix
-    modelViewMatrix = savedModelView;
+    // If spotlight is outside scene bounds, place marker at boundary
+    let distance = Math.sqrt(
+        markerPos[0] * markerPos[0] + 
+        markerPos[1] * markerPos[1] + 
+        markerPos[2] * markerPos[2]
+    );
+
+    markerPos[0] = (markerPos[0] / distance) * sceneBounds;
+    markerPos[1] = (markerPos[1] / distance) * sceneBounds;
+    markerPos[2] = (markerPos[2] / distance) * sceneBounds;
+
+    let startPosition = vec4(markerPos[0], markerPos[1], markerPos[2], 1.0);
+    let direction = normalize(spotLightDirection); // Ensure the direction is normalized
+    let arrowSize = 0.5; // Adjust this to change the length of the arrow
+
+    drawArrow(startPosition, direction, arrowSize);
 }
+
+function drawArrow(startPosition, direction, size) {
+    // Calculate the end position of the arrow line based on the direction and size
+    let endPosition = vec4(
+        startPosition[0] + direction[0] * size,
+        startPosition[1] + direction[1] * size,
+        startPosition[2] + direction[2] * size,
+        1.0
+    );
+
+    // Create line vertices (start and end points)
+    let lineVertices = [startPosition, endPosition];
+
+    // Create and bind buffer for the line
+    let lineBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, lineBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(lineVertices), gl.STATIC_DRAW);
+
+    // Set up line attributes
+    gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
+
+    // Draw the line (representing the main direction)
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+    gl.drawArrays(gl.LINES, 0, 2);
+
+    // Calculate the base of the arrowhead (offset from the end of the line)
+    let arrowBase = vec4(
+        endPosition[0] - direction[0] * size * 0.1,  // Shrink by a factor to get the base of the arrowhead
+        endPosition[1] - direction[1] * size * 0.1,
+        endPosition[2] - direction[2] * size * 0.1,
+        1.0
+    );
+
+    // Create vertices for the triangle (arrowhead)
+    let triangleVertices = [
+        endPosition,  // Tip of the arrow
+        vec4(
+            arrowBase[0] + direction[1] * size * 0.1,
+            arrowBase[1] - direction[0] * size * 0.1,
+            arrowBase[2],
+            1.0
+        ),  // Left side of the arrowhead
+        vec4(
+            arrowBase[0] - direction[1] * size * 0.1,
+            arrowBase[1] + direction[0] * size * 0.1,
+            arrowBase[2],
+            1.0
+        )   // Right side of the arrowhead
+    ];
+
+    // Create and bind buffer for the arrowhead (triangle)
+    let triangleBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, triangleBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(triangleVertices), gl.STATIC_DRAW);
+
+    // Set up triangle attributes
+    gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
+
+    // Draw the triangle (representing the arrowhead)
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+
+    // Draw the arrowhead (triangle)
+    nMatrix = normalMatrix(modelViewMatrix);
+    gl.uniformMatrix3fv(normalMatrixLoc, false, nMatrix);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+}
+
+
+
+// function drawArrow(start, end) {
+//     // Draw a line from `start` to `end` using LINE_STRIP
+//     var vertices = [
+//         vec4(start[0], start[1], start[2], 1.0),
+//         vec4(end[0], end[1], end[2], 1.0)
+//     ];
+
+//     // Send vertices to GPU and render the line
+//     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+//     gl.bufferData(gl.ARRAY_BUFFER, flatten(vertices), gl.STATIC_DRAW);
+//     gl.drawArrays(gl.LINES, 0, 2);
+
+// }
+
+// function drawSphere(scaleFactor) {
+//     // Save the current transformation matrix
+//     stack.push(modelViewMatrix);
+
+//     // Apply scaling transformation
+//     modelViewMatrix = mult(modelViewMatrix, scalem(scaleFactor, scaleFactor, scaleFactor));
+
+//     // Pass the updated modelViewMatrix to the shader
+//     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+
+//     // Draw the sphere
+//     gl.drawArrays(gl.TRIANGLES, sphereStartIndex, sphereVertexCount);
+
+//     // Restore the original transformation matrix
+//     modelViewMatrix = stack.pop();
+// }
+
+function sphere(subdivisions) {
+    var vertices = [];
+    var radius = 1.0;
+    
+    // Generate sphere vertices
+    for(var i = 0; i <= subdivisions; i++) {
+        var lat = Math.PI * (-0.5 + (i / subdivisions));
+        var sinLat = Math.sin(lat);
+        var cosLat = Math.cos(lat);
+
+        for(var j = 0; j <= subdivisions; j++) {
+            var lon = 2 * Math.PI * (j / subdivisions);
+            var sinLon = Math.sin(lon);
+            var cosLon = Math.cos(lon);
+
+            var x = cosLon * cosLat;
+            var y = sinLat;
+            var z = sinLon * cosLat;
+
+            vertices.push(vec4(radius * x, radius * y, radius * z, 1.0));
+        }
+    }
+
+    // Generate triangles
+    var spherePoints = [];
+    for(var i = 0; i < subdivisions; i++) {
+        for(var j = 0; j < subdivisions; j++) {
+            var first = (i * (subdivisions + 1)) + j;
+            var second = first + subdivisions + 1;
+
+            // First triangle
+            spherePoints.push(vertices[first]);
+            spherePoints.push(vertices[first + 1]);
+            spherePoints.push(vertices[second]);
+
+            // Second triangle
+            spherePoints.push(vertices[second]);
+            spherePoints.push(vertices[first + 1]);
+            spherePoints.push(vertices[second + 1]);
+        }
+    }
+
+    return spherePoints;
+}
+
 
 /*-----------------------------------------------------------------------------------*/
