@@ -30,7 +30,7 @@ var materialSpecular = vec4(1.0, 1.0, 1.0, 1.0);
 
 var eye = vec3(0.0, 0.0, 4.0);
 var at = vec3(0.0, 0.0, 0.0);
-var up = vec3(0.0, 1.0, 0.0);
+var up = vec4(0.0, 1.0, 0.0, 1.0);
 
 // Variables for the objects
 var teacupObj, torusObj, plateObj;
@@ -54,8 +54,6 @@ var savedLightValues = {
 var activeRotationAxis = 'x'; // Default to X-axis rotation
 var selectedObject = 'teacup'; // Default selected object
 
-// Global shininess value
-var globalShininess = 51;
 
 // Material properties for each object
 var materials = {
@@ -273,10 +271,6 @@ window.onload = function init()
         render();
     });
 
-// Add at the top with other global variables
-var backgroundImage = new Image();
-var hasBackgroundImage = false;
-
     // Add in getUIElement() function after the background color picker handler
     document.getElementById('background-image-upload').addEventListener('change', function(event) {
         const file = event.target.files[0];
@@ -472,9 +466,10 @@ function getUIElement()
     };
 
     document.getElementById('slider-shininess').onchange = function(event) {
-        globalShininess = parseFloat(event.target.value);
-        document.getElementById('text-shininess').innerHTML = globalShininess;
-        render();
+        const value = parseFloat(event.target.value);
+        materials[selectedObject].shininess = value;  // Update the object's shininess
+        document.getElementById('text-shininess').innerHTML = value;
+        recompute();
     };
 
     // Add light color picker handlers
@@ -641,7 +636,7 @@ function render()
     gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
     gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct));
     gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
-    gl.uniform1f(gl.getUniformLocation(program, "shininess"), globalShininess);
+    gl.uniform1f(gl.getUniformLocation(program, "shininess"), materials.teacup.shininess);
     drawTeacup();
 
     // Draw torus with its material
@@ -656,7 +651,7 @@ function render()
     gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
     gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct));
     gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
-    gl.uniform1f(gl.getUniformLocation(program, "shininess"), globalShininess);
+    gl.uniform1f(gl.getUniformLocation(program, "shininess"), materials.torus.shininess);
     drawTorus();
 
     // Draw plate with its material
@@ -671,7 +666,7 @@ function render()
     gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
     gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct));
     gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
-    gl.uniform1f(gl.getUniformLocation(program, "shininess"), globalShininess);
+    gl.uniform1f(gl.getUniformLocation(program, "shininess"), materials.plate.shininess);
     drawPlate();
 
     if (!isPointLight) {
@@ -803,7 +798,7 @@ function animUpdate() {
     gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
     gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct));
     gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
-    gl.uniform1f(gl.getUniformLocation(program, "shininess"), globalShininess);
+    gl.uniform1f(gl.getUniformLocation(program, "shininess"), materials.teacup.shininess);
     drawTeacup();
 
     // Reapply material properties for torus
@@ -818,7 +813,7 @@ function animUpdate() {
     gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
     gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct));
     gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
-    gl.uniform1f(gl.getUniformLocation(program, "shininess"), globalShininess);
+    gl.uniform1f(gl.getUniformLocation(program, "shininess"), materials.torus.shininess);
     drawTorus();
 
     // Reapply material properties for plate
@@ -833,7 +828,7 @@ function animUpdate() {
     gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"), flatten(ambientProduct));
     gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"), flatten(diffuseProduct));
     gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), flatten(specularProduct));
-    gl.uniform1f(gl.getUniformLocation(program, "shininess"), globalShininess);
+    gl.uniform1f(gl.getUniformLocation(program, "shininess"), materials.plate.shininess);
     drawPlate();
 
     animFrame = window.requestAnimationFrame(animUpdate);
@@ -1017,13 +1012,10 @@ function updateMaterialUI() {
     document.getElementById('slider-specular-coef').value = material.specularCoef;
     document.getElementById('text-specular-coef').innerHTML = material.specularCoef.toFixed(2);
 
-    // // Update shininess
-    // document.getElementById('slider-shininess').value = material.shininess;
-    // document.getElementById('text-shininess').innerHTML = material.shininess;
+    // Update shininess
+    document.getElementById('slider-shininess').value = material.shininess;
+    document.getElementById('text-shininess').innerHTML = material.shininess;
 
-    // // Update global shininess
-    // globalShininess = material.shininess;
-    
     recompute();
 }
 
