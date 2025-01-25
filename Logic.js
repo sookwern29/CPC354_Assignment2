@@ -61,17 +61,17 @@ var materials = {
         ambient: vec4(0.6, 0.4, 0.2, 1.0),    // Light brown
         diffuse: vec4(1.0, 1.0, 1.0, 1.0),    // White diffuse
         specular: vec4(1.0, 1.0, 1.0, 1.0),   // White specular
-        ambientCoef: 0.6,
-        diffuseCoef: 0.8,
-        specularCoef: 0.9,
+        ambientCoef: 1.0,
+        diffuseCoef: 1.0,
+        specularCoef: 1.0,
         shininess: 51
     },
     torus: {
         ambient: vec4(0.6, 0.6, 1.0, 1.0),    // Light blue
         diffuse: vec4(1.0, 1.0, 1.0, 1.0),    // White diffuse
         specular: vec4(1.0, 1.0, 1.0, 1.0),   // White specular
-        ambientCoef: 0.5,
-        diffuseCoef: 0.7,
+        ambientCoef: 1.0,
+        diffuseCoef: 1.0,
         specularCoef: 1.0,
         shininess: 60
     },
@@ -79,9 +79,9 @@ var materials = {
         ambient: vec4(0.9, 0.9, 0.9, 1.0),    // White ambient
         diffuse: vec4(0.9, 0.9, 0.9, 1.0),    // White diffuse
         specular: vec4(1.0, 1.0, 1.0, 1.0),   // White specular
-        ambientCoef: 0.4,
-        diffuseCoef: 0.6,
-        specularCoef: 0.8,
+        ambientCoef: 1.0,
+        diffuseCoef: 1.0,
+        specularCoef: 1.0,
         shininess: 45
     }
 };
