@@ -716,3 +716,62 @@ function plate(outerRadius, innerRadius, height, numSegments) {
     plateData.Scale = scale;
     return plateData;
 }
+
+function createArrow(length, thickness) {
+    var arrowPoints = [], arrowNormals = [], arrowData = {};
+    
+    // Default values
+    length = length || 0.5;
+    thickness = thickness || 0.02;
+    
+    // Create arrow shaft
+    var shaftLength = length * 0.7;
+    var headLength = length * 0.3;
+    var headThickness = thickness * 3;
+    
+    // Arrow shaft vertices (as a thin box)
+    var shaftVertices = [
+        // Front face
+        vec4(-thickness, -thickness, 0, 1.0),
+        vec4(thickness, -thickness, 0, 1.0),
+        vec4(thickness, thickness, 0, 1.0),
+        vec4(-thickness, thickness, 0, 1.0),
+        
+        // Back face
+        vec4(-thickness, -thickness, shaftLength, 1.0),
+        vec4(thickness, -thickness, shaftLength, 1.0),
+        vec4(thickness, thickness, shaftLength, 1.0),
+        vec4(-thickness, thickness, shaftLength, 1.0),
+    ];
+    
+    // Arrow head vertices (as a pyramid)
+    var headVertices = [
+        // Base
+        vec4(-headThickness, -headThickness, shaftLength, 1.0),
+        vec4(headThickness, -headThickness, shaftLength, 1.0),
+        vec4(headThickness, headThickness, shaftLength, 1.0),
+        vec4(-headThickness, headThickness, shaftLength, 1.0),
+        // Tip
+        vec4(0, 0, length, 1.0)
+    ];
+    
+    // Add shaft faces
+    for (var i = 0; i < shaftVertices.length; i++) {
+        arrowPoints.push(shaftVertices[i]);
+        arrowNormals.push(vec3(0, 0, 1));
+    }
+    
+    // Add head faces
+    for (var i = 0; i < headVertices.length; i++) {
+        arrowPoints.push(headVertices[i]);
+        arrowNormals.push(vec3(0, 0, 1));
+    }
+    
+    arrowData.Point = arrowPoints;
+    arrowData.Normal = arrowNormals;
+    arrowData.Translate = translate;
+    arrowData.Rotate = rotate;
+    arrowData.Scale = scale;
+    
+    return arrowData;
+}

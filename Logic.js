@@ -8,11 +8,6 @@ var pBuffer, nBuffer, vPosition, vNormal;
 var modelViewMatrixLoc, projectionMatrixLoc, normalMatrixLoc;
 var modelViewMatrix, projectionMatrix = ortho(-3, 3, -2, 2, -10, 10), nMatrix;
 
-// Variables referencing HTML elements
-var sliderLightX, sliderLightY, sliderLightZ;
-var textLightX, textLightY, textLightZ;
-var startBtn;
-
 // Rotation variables for each object
 var teacupTheta = [0, 0, 0], torusTheta = [0, 0, 0], plateTheta = [0, 0, 0];
 var animFrame = 0, animFlag = false;
@@ -45,7 +40,7 @@ let isFlat = false; // Track shading type
 var isLightOn = true;
 var isPointLight = true; // Track light type
 var spotlightPosition = vec4(1.0, 7.0, 0.0, 1.0);
-var spotLightDirection = vec4(0.0, -1.0, 0.0, 1.0); // Direction for spot light
+var spotlightDirection = vec4(0.0, -1.0, 0.0, 0.0); // Default pointing downward
 let spotLightCutoff = 30.0; // 30-degree cutoff angle
 var savedLightValues = {
     ambient: 0.5,
@@ -120,10 +115,18 @@ window.onload = function init()
     // WebGL setups
     getUIElement();
     configWebGL();
-    addEventListeners();
     updateCamera();
     render();
 
+}
+
+// Retrieve all elements from HTML and store in the corresponding variables
+function getUIElement()
+{
+    canvas = document.getElementById("gl-canvas");
+
+    //Feature 1: Toggle Light On and Off
+    //Light On
     document.getElementById('light-on').addEventListener('click', function() {
         isLightOn = true;
         this.classList.add('active');
@@ -137,6 +140,7 @@ window.onload = function init()
         recompute();
     });
 
+    //Light Off
     document.getElementById('light-off').addEventListener('click', function() {
         isLightOn = false;
         this.classList.add('active');
@@ -150,6 +154,199 @@ window.onload = function init()
         recompute();
     });
 
+    //Feature 2: Light Color Picker
+    //Ambient Light
+    document.getElementById('light-ambient-color').addEventListener('input', function(event) {
+        var color = event.target.value;
+        var r = parseInt(color.substr(1,2), 16) / 255;
+        var g = parseInt(color.substr(3,2), 16) / 255;
+        var b = parseInt(color.substr(5,2), 16) / 255;
+        lightAmbient = vec4(r, g, b, 1.0);
+        recompute();
+    });
+
+    //Diffuse Light
+    document.getElementById('light-diffuse-color').addEventListener('input', function(event) {
+        var color = event.target.value;
+        var r = parseInt(color.substr(1,2), 16) / 255;
+        var g = parseInt(color.substr(3,2), 16) / 255;
+        var b = parseInt(color.substr(5,2), 16) / 255;
+        lightDiffuse = vec4(r, g, b, 1.0);
+        recompute();
+    });
+
+    //Specular Light
+    document.getElementById('light-specular-color').addEventListener('input', function(event) {
+        var color = event.target.value;
+        var r = parseInt(color.substr(1,2), 16) / 255;
+        var g = parseInt(color.substr(3,2), 16) / 255;
+        var b = parseInt(color.substr(5,2), 16) / 255;
+        lightSpecular = vec4(r, g, b, 1.0);
+        recompute();
+    });
+
+    //Feature 3: Light Type Toggle
+    //Light 1: Point Light
+    document.getElementById('point-light').addEventListener('click', function() {
+        isPointLight = true;
+        document.querySelector('.spotlight-controls').style.display = 'none';
+        document.querySelector('.pointlight-controls').style.display = 'block';
+        this.classList.add('active');
+        document.getElementById('spot-light').classList.remove('active');
+        recompute();
+    });
+
+    //Light 2:Spot Light
+    document.getElementById('spot-light').addEventListener('click', function() {
+        isPointLight = false;
+        document.querySelector('.spotlight-controls').style.display = 'block';
+        document.querySelector('.pointlight-controls').style.display = 'none';
+        this.classList.add('active');
+        document.getElementById('point-light').classList.remove('active');
+        recompute();
+    });
+
+    //Feature 4: Point Light Position
+    //X
+    document.getElementById('slider-light-x').onchange = function(event) 
+	{
+		lightPos[0] = event.target.value;
+		document.getElementById('text-light-x').innerHTML = lightPos[0].toFixed(1);
+        recompute();
+    };
+
+    //Y
+    document.getElementById('slider-light-y').onchange = function(event) 
+	{
+		lightPos[1] = event.target.value;
+		document.getElementById('text-light-y').innerHTML = lightPos[1].toFixed(1);
+        recompute();
+    };
+
+    //Z
+    document.getElementById('slider-light-z').onchange = function(event) 
+	{
+		lightPos[2] = event.target.value;
+		document.getElementById('text-light-z').innerHTML = lightPos[2].toFixed(1);
+        recompute();
+    };
+    
+    //Feature 5: Spotlight Position
+    //X
+    document.getElementById('slider-spotlight-x').onchange = function(event) {
+        spotlightPosition[0] = event.target.value;
+        document.getElementById('text-spotlight-x').innerHTML = spotlightPosition[0];
+        recompute();
+    };
+    //Y 
+    document.getElementById('slider-spotlight-y').onchange = function(event) {
+        spotlightPosition[1] = event.target.value;
+        document.getElementById('text-spotlight-y').innerHTML = spotlightPosition[1];
+        recompute();
+    };
+
+    //Z
+    document.getElementById('slider-spotlight-z').onchange = function(event) {
+        spotlightPosition[2] = event.target.value;
+        document.getElementById('text-spotlight-z').innerHTML = spotlightPosition[2];
+        recompute();
+    };
+
+    //Feature 5: Spotlight Direction
+    //X
+    document.getElementById('slider-spotlight-dir-x').onchange = function(event) {
+        spotlightDirection[0] = event.target.value;
+        document.getElementById('text-spotlight-dir-x').innerHTML = spotlightDirection[0].toFixed(1);
+        recompute();
+    };
+
+    //Y
+    document.getElementById('slider-spotlight-dir-y').onchange = function(event) {
+        spotlightDirection[1] = event.target.value;
+        document.getElementById('text-spotlight-dir-y').innerHTML = spotlightDirection[1].toFixed(1);
+        recompute();
+    };
+
+    //Z
+    document.getElementById('slider-spotlight-dir-z').onchange = function(event) {
+        spotlightDirection[2] = event.target.value;
+        document.getElementById('text-spotlight-dir-z').innerHTML = spotlightDirection[2].toFixed(1);
+        recompute();
+    };
+
+    //Feature 6(Additional Feature): Spotlight Cutoff Angle
+    document.getElementById('slider-spotlight-cutoff').onchange = function(event) {
+        spotLightCutoff = parseFloat(event.target.value);
+        document.getElementById('text-spotlight-cutoff').innerHTML = spotLightCutoff.toFixed(2);
+        recompute();
+    }; 
+
+    //Feature 7: Object Selection
+    document.getElementById('teacup-select').addEventListener('click', function() {
+        selectObject('teacup');
+    });
+    document.getElementById('torus-select').addEventListener('click', function() {
+        selectObject('torus');
+    });
+    document.getElementById('plate-select').addEventListener('click', function() {
+        selectObject('plate');
+    });
+
+    //Material Properties
+    //Feature 8: Object Shininess
+    document.getElementById('slider-shininess').onchange = function(event) {
+        const value = parseFloat(event.target.value);
+        materials[selectedObject].shininess = value;  // Update the object's shininess
+        document.getElementById('text-shininess').innerHTML = value;
+        recompute();
+    };
+
+    //Feature 9: Material Color
+    //Ambient
+    document.getElementById('material-ambient-color').addEventListener('input', function(event) {
+        var color = hexToRgb(event.target.value);
+        var coef = parseFloat(document.getElementById('slider-ambient-coef').value);
+        
+        materials[selectedObject].diffuse = vec4(
+            color.r * coef,
+            color.g * coef,
+            color.b * coef,
+            1.0
+        );
+        recompute();
+    });
+
+    //Diffuse
+    document.getElementById('material-diffuse-color').addEventListener('input', function(event) {
+        var color = hexToRgb(event.target.value);
+        var coef = parseFloat(document.getElementById('slider-diffuse-coef').value);
+        
+        materials[selectedObject].diffuse = vec4(
+            color.r * coef,
+            color.g * coef,
+            color.b * coef,
+            1.0
+        );
+        recompute();
+    });
+
+    //Specular
+    document.getElementById('material-specular-color').addEventListener('input', function(event) {
+        var color = hexToRgb(event.target.value);
+        var coef = parseFloat(document.getElementById('slider-specular-coef').value);
+        
+        materials[selectedObject].specular = vec4(
+            color.r * coef,
+            color.g * coef,
+            color.b * coef,
+            1.0
+        );
+
+        recompute();
+    });
+
+    //Feature 10: Material Coefficient
+    //Ambient Coefficient
     document.getElementById('slider-ambient-coef').onchange = function(event) {
         var value = parseFloat(event.target.value);
         var colorHex = document.getElementById('material-ambient-color').value;
@@ -166,6 +363,7 @@ window.onload = function init()
         recompute();
     };
 
+    //Diffuse Coefficient
     document.getElementById('slider-diffuse-coef').onchange = function(event) {
         var value = parseFloat(event.target.value);
         var colorHex = document.getElementById('material-diffuse-color').value;
@@ -183,6 +381,7 @@ window.onload = function init()
         recompute();
     };
 
+    //Specular Coefficient
     document.getElementById('slider-specular-coef').onchange = function(event) {
         var value = parseFloat(event.target.value);
         var colorHex = document.getElementById('material-specular-color').value;
@@ -200,115 +399,61 @@ window.onload = function init()
         recompute();
     };
 
-    document.getElementById('slider-shininess').onchange = function(event) {
-        const value = parseFloat(event.target.value);
-        materials[selectedObject].shininess = value;  // Update the object's shininess
-        document.getElementById('text-shininess').innerHTML = value;
-        recompute();
-    };
 
-    // Add light color picker handlers
-    document.getElementById('light-ambient-color').addEventListener('input', function(event) {
-        var color = event.target.value;
-        var r = parseInt(color.substr(1,2), 16) / 255;
-        var g = parseInt(color.substr(3,2), 16) / 255;
-        var b = parseInt(color.substr(5,2), 16) / 255;
-        lightAmbient = vec4(r, g, b, 1.0);
-        recompute();
+    //Feature 11: Camera Properties
+    //1. Theta 
+    document.getElementById("slider-theta").addEventListener("input", function () {
+        theta = parseFloat(this.value);
+        document.getElementById("text-theta").innerText = theta;
+        updateCamera();
     });
 
-    document.getElementById('light-diffuse-color').addEventListener('input', function(event) {
-        var color = event.target.value;
-        var r = parseInt(color.substr(1,2), 16) / 255;
-        var g = parseInt(color.substr(3,2), 16) / 255;
-        var b = parseInt(color.substr(5,2), 16) / 255;
-        lightDiffuse = vec4(r, g, b, 1.0);
-        recompute();
+    //2. Phi
+    document.getElementById("slider-phi").addEventListener("input", function () {
+        phi = parseFloat(this.value);
+        document.getElementById("text-phi").innerText = phi;
+        updateCamera();
     });
 
-    document.getElementById('light-specular-color').addEventListener('input', function(event) {
-        var color = event.target.value;
-        var r = parseInt(color.substr(1,2), 16) / 255;
-        var g = parseInt(color.substr(3,2), 16) / 255;
-        var b = parseInt(color.substr(5,2), 16) / 255;
-        lightSpecular = vec4(r, g, b, 1.0);
-        recompute();
+    //3. Radius    
+    document.getElementById("slider-radius").addEventListener("input", function () {
+        radius = parseFloat(this.value);
+        document.getElementById("text-radius").innerText = radius;
+        updateCamera();
     });
 
-    // Add these event listeners
-    document.getElementById('slider-spotlight-cutoff').onchange = function(event) {
-        spotLightCutoff = parseFloat(event.target.value);
-        document.getElementById('text-spotlight-cutoff').innerHTML = spotLightCutoff.toFixed(2);
-        recompute();
-    };
-
-
-
-    //Spotlight Position
-    document.getElementById('slider-spotlight-x').onchange = function(event) {
-        spotlightPosition[0] = event.target.value;
-        document.getElementById('text-spotlight-x').innerHTML = spotlightPosition[0];
-        recompute();
-    };
-    
-    document.getElementById('slider-spotlight-y').onchange = function(event) {
-        spotlightPosition[1] = event.target.value;
-        document.getElementById('text-spotlight-y').innerHTML = spotlightPosition[1];
-        recompute();
-    };
-    
-    document.getElementById('slider-spotlight-z').onchange = function(event) {
-        spotlightPosition[2] = event.target.value;
-        document.getElementById('text-spotlight-z').innerHTML = spotlightPosition[2];
-        recompute();
-    };
-
-    //Spotlight Direction
-    document.getElementById('slider-spotlight-dir-x').onchange = function(event) {
-        spotLightDirection[0] = event.target.value;
-        document.getElementById('text-spotlight-dir-x').innerHTML = spotLightDirection[0].toFixed(1);
-        recompute();
-    };
-    
-    document.getElementById('slider-spotlight-dir-y').onchange = function(event) {
-        spotLightDirection[1] = event.target.value;
-        document.getElementById('text-spotlight-dir-y').innerHTML = spotLightDirection[1].toFixed(1);
-        recompute();
-    };
-    
-    document.getElementById('slider-spotlight-dir-z').onchange = function(event) {
-        spotLightDirection[2] = event.target.value;
-        document.getElementById('text-spotlight-dir-z').innerHTML = spotLightDirection[2].toFixed(1);
-        recompute();
-    };
-
-    // Add light type toggle event listeners
-    document.getElementById('point-light').addEventListener('click', function() {
-        isPointLight = true;
-        document.querySelector('.spotlight-controls').style.display = 'none';
-        document.querySelector('.pointlight-controls').style.display = 'block';
-        this.classList.add('active');
-        document.getElementById('spot-light').classList.remove('active');
-        recompute();
+    //4. Field of View
+    document.getElementById("slider-fov").addEventListener("input", function () {
+        fov = parseFloat(this.value);
+        document.getElementById("text-fov").innerText = fov;
+        updateCamera();
     });
 
-    document.getElementById('spot-light').addEventListener('click', function() {
-        isPointLight = false;
-        document.querySelector('.spotlight-controls').style.display = 'block';
-        document.querySelector('.pointlight-controls').style.display = 'none';
-        this.classList.add('active');
-        document.getElementById('point-light').classList.remove('active');
-        recompute();
+    //5. Near
+    document.getElementById("slider-near").addEventListener("input", function () {
+        near = parseFloat(this.value);
+        document.getElementById("text-near").innerText = near;
+        updateCamera();
     });
 
-    // Background customization
+    //6. Far
+    document.getElementById("slider-far").addEventListener("input", function () {
+        far = parseFloat(this.value);
+        document.getElementById("text-far").innerText = far;
+        updateCamera();
+    });
+
+    //Feature 12: Background Customization
+    //Toggle color or image background
+    //1. Color Background
     document.getElementById('color-bg').addEventListener('click', function() {
         this.classList.add('active');
         document.getElementById('image-bg').classList.remove('active');
         document.getElementById('color-bg-section').style.display = 'flex';
         document.getElementById('image-bg-section').style.display = 'none';
     });
-    
+
+    //2. Image Background
     document.getElementById('image-bg').addEventListener('click', function() {
         this.classList.add('active');
         document.getElementById('color-bg').classList.remove('active');
@@ -316,14 +461,14 @@ window.onload = function init()
         document.getElementById('image-bg-section').style.display = 'flex';
     });
 
-    // Add background color picker handler
+    //Background Color Picker
     document.getElementById('background-color-picker').addEventListener('input', function(event) {
         var color = hexToRgb(event.target.value);
         gl.clearColor(color.r, color.g, color.b, 1.0);
         render();
     });
 
-    // Add in getUIElement() function after the background color picker handler
+    //Background Image Upload
     document.getElementById('background-image-upload').addEventListener('change', function(event) {
         const file = event.target.files[0];
         if (file) {
@@ -343,7 +488,7 @@ window.onload = function init()
         }
     });
 
-        // Add remove background handler
+    //Remove Background
     document.getElementById('remove-bkg-btn').addEventListener('click', function() {
         hasBackgroundImage = false;
         canvas.style.backgroundImage = 'none';
@@ -355,7 +500,8 @@ window.onload = function init()
         render();
     });
 
-        // Add this in your init() function or where you set up event listeners
+    //Feature 13: Shading Type
+    //1. Flat Shading
     document.getElementById('flat-shading').addEventListener('click', function() {
         isFlat = true;
         this.classList.add('active');
@@ -365,6 +511,7 @@ window.onload = function init()
         recomputeNormals();
     });
     
+    //2. Smooth Shading
     document.getElementById('smooth-shading').addEventListener('click', function() {
         isFlat = false;
         this.classList.add('active');
@@ -374,100 +521,9 @@ window.onload = function init()
         recomputeNormals();
     });
 
-    // Add object selection event listeners
-    document.getElementById('teacup-select').addEventListener('click', function() {
-        selectObject('teacup');
-    });
-    document.getElementById('torus-select').addEventListener('click', function() {
-        selectObject('torus');
-    });
-    document.getElementById('plate-select').addEventListener('click', function() {
-        selectObject('plate');
-    });
 
-}
-
-// Retrieve all elements from HTML and store in the corresponding variables
-function getUIElement()
-{
-    canvas = document.getElementById("gl-canvas");
-    sliderLightX = document.getElementById("slider-light-x");
-    sliderLightY = document.getElementById("slider-light-y");
-    sliderLightZ = document.getElementById("slider-light-z");
-    textLightX = document.getElementById("text-light-x");
-    textLightY = document.getElementById("text-light-y");
-    textLightZ = document.getElementById("text-light-z");
-    startBtn = document.getElementById("start-btn");
-
-    sliderLightX.onchange = function(event) 
-	{
-		lightPos[0] = event.target.value;
-		textLightX.innerHTML = lightPos[0].toFixed(1);
-        recompute();
-    };
-
-    sliderLightY.onchange = function(event) 
-	{
-		lightPos[1] = event.target.value;
-		textLightY.innerHTML = lightPos[1].toFixed(1);
-        recompute();
-    };
-
-    sliderLightZ.onchange = function(event) 
-	{
-		lightPos[2] = event.target.value;
-		textLightZ.innerHTML = lightPos[2].toFixed(1);
-        recompute();
-    };
-
-    startBtn.onclick = function()
-	{
-		animFlag = !animFlag;
-
-        if(animFlag) animUpdate();
-        else window.cancelAnimationFrame(animFrame);
-	};
-
-    document.getElementById('material-ambient-color').addEventListener('input', function(event) {
-        var color = hexToRgb(event.target.value);
-        var coef = parseFloat(document.getElementById('slider-ambient-coef').value);
-        
-        materials[selectedObject].diffuse = vec4(
-            color.r * coef,
-            color.g * coef,
-            color.b * coef,
-            1.0
-        );
-        recompute();
-    });
-
-    document.getElementById('material-diffuse-color').addEventListener('input', function(event) {
-        var color = hexToRgb(event.target.value);
-        var coef = parseFloat(document.getElementById('slider-diffuse-coef').value);
-        
-        materials[selectedObject].diffuse = vec4(
-            color.r * coef,
-            color.g * coef,
-            color.b * coef,
-            1.0
-        );
-        recompute();
-    });
-
-    document.getElementById('material-specular-color').addEventListener('input', function(event) {
-        var color = hexToRgb(event.target.value);
-        var coef = parseFloat(document.getElementById('slider-specular-coef').value);
-        
-        materials[selectedObject].specular = vec4(
-            color.r * coef,
-            color.g * coef,
-            color.b * coef,
-            1.0
-        );
-
-        recompute();
-    });
-
+    //Feature 14: Animation
+    //1. Rotation
     document.getElementById('rotate-x').addEventListener('click', function() {
         setActiveRotation('x');
     });
@@ -479,6 +535,15 @@ function getUIElement()
     document.getElementById('rotate-z').addEventListener('click', function() {
         setActiveRotation('z');
     });
+
+    //2. Start Animation
+    document.getElementById('start-btn').onclick = function()
+	{
+		animFlag = !animFlag;
+
+        if(animFlag) animUpdate();
+        else window.cancelAnimationFrame(animFrame);
+	};
 }
 
 // Configure WebGL Settings
@@ -561,7 +626,7 @@ function render()
     gl.uniform4fv(gl.getUniformLocation(program, "lightPos"), flatten(lightPos));
     gl.uniform1i(gl.getUniformLocation(program, "uIsPointLight"), isPointLight);
     gl.uniform4fv(gl.getUniformLocation(program, "spotlightPosition"), flatten(spotlightPosition));
-    gl.uniform4fv(gl.getUniformLocation(program, "uSpotLightDirection"), flatten(spotLightDirection));
+    gl.uniform4fv(gl.getUniformLocation(program, "uSpotLightDirection"), flatten(spotlightDirection));
     gl.uniform1f(gl.getUniformLocation(program, "uSpotLightCutoff"), spotLightCutoff);
 
     // Draw teacup with its material
@@ -972,11 +1037,36 @@ function drawSpotlightMarker() {
         spotlightPosition[2]
     ));
     
-    // Scale down to make a small marker
-    modelViewMatrix = mult(modelViewMatrix, scale(0.1, 0.1, 0.1));
+    // Create rotation matrix to point in spotlight direction
+    var direction = normalize(vec3(
+        spotlightDirection[0],
+        spotlightDirection[1],
+        spotlightDirection[2]
+    ));
     
-    // Draw a small sphere or cube here
-    // ... your drawing code ...
+    // Calculate rotation angles
+    var phi = Math.acos(direction[1]);
+    var theta = Math.atan2(direction[0], direction[2]);
+    
+    // Apply rotations
+    modelViewMatrix = mult(modelViewMatrix, rotateY(theta * 180 / Math.PI));
+    modelViewMatrix = mult(modelViewMatrix, rotateX(phi * 180 / Math.PI));
+    
+    // Create and draw arrow
+    var arrow = createArrow(0.5, 0.02);
+    
+    // Draw the arrow
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, pBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(arrow.Point), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(vPosition, 4, gl.FLOAT, false, 0, 0);
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, nBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, flatten(arrow.Normal), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(vNormal, 3, gl.FLOAT, false, 0, 0);
+    
+    gl.drawArrays(gl.TRIANGLES, 0, arrow.Point.length);
     
     // Restore modelView matrix
     modelViewMatrix = savedModelView;
@@ -993,44 +1083,6 @@ function hexToRgb(hex) {
 
 function rgbToHex(r, g, b) {
     return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-}
-
-function addEventListeners() {
-    document.getElementById("slider-theta").addEventListener("input", function () {
-        theta = parseFloat(this.value);
-        document.getElementById("text-theta").innerText = theta;
-        updateCamera();
-    });
-
-    document.getElementById("slider-phi").addEventListener("input", function () {
-        phi = parseFloat(this.value);
-        document.getElementById("text-phi").innerText = phi;
-        updateCamera();
-    });
-
-    document.getElementById("slider-radius").addEventListener("input", function () {
-        radius = parseFloat(this.value);
-        document.getElementById("text-radius").innerText = radius;
-        updateCamera();
-    });
-
-    document.getElementById("slider-fov").addEventListener("input", function () {
-        fov = parseFloat(this.value);
-        document.getElementById("text-fov").innerText = fov;
-        updateCamera();
-    });
-
-    document.getElementById("slider-near").addEventListener("input", function () {
-        near = parseFloat(this.value);
-        document.getElementById("text-near").innerText = near;
-        updateCamera();
-    });
-
-    document.getElementById("slider-far").addEventListener("input", function () {
-        far = parseFloat(this.value);
-        document.getElementById("text-far").innerText = far;
-        updateCamera();
-    });
 }
 
 function perspective(fov, aspect, near, far) {
@@ -1079,14 +1131,7 @@ function updateCamera() {
     render();
 }
 
-    document.addEventListener("DOMContentLoaded", function () {
-        theta = parseFloat(document.getElementById("slider-theta").value);
-        phi = parseFloat(document.getElementById("slider-phi").value);
-        radius = parseFloat(document.getElementById("slider-radius").value);
-        fov = parseFloat(document.getElementById("slider-fov").value);
-        near = parseFloat(document.getElementById("slider-near").value);
-        far = parseFloat(document.getElementById("slider-far").value);
-    });
+
 
 function interpolateMaterial(value) {
     const t = value / 100;
