@@ -60,19 +60,31 @@ var globalShininess = 51;
 // Material properties for each object
 var materials = {
     teacup: {
-        ambient: vec4(0.5, 0.5, 1.0, 1.0),
-        diffuse: vec4(0.0, 0.9, 1.0, 1.0),
-        specular: vec4(1.0, 1.0, 1.0, 1.0)
+        ambient: vec4(0.6, 0.4, 0.2, 1.0),    // Light brown
+        diffuse: vec4(1.0, 1.0, 1.0, 1.0),    // White diffuse
+        specular: vec4(1.0, 1.0, 1.0, 1.0),   // White specular
+        ambientCoef: 0.6,
+        diffuseCoef: 0.8,
+        specularCoef: 0.9,
+        shininess: 51
     },
     torus: {
-        ambient: vec4(0.3, 0.6, 1.0, 1.0),
-        diffuse: vec4(0.3, 0.6, 1.0, 1.0),
-        specular: vec4(1.0, 1.0, 1.0, 1.0)
+        ambient: vec4(0.6, 0.6, 1.0, 1.0),    // Light blue
+        diffuse: vec4(1.0, 1.0, 1.0, 1.0),    // White diffuse
+        specular: vec4(1.0, 1.0, 1.0, 1.0),   // White specular
+        ambientCoef: 0.5,
+        diffuseCoef: 0.7,
+        specularCoef: 1.0,
+        shininess: 60
     },
     plate: {
-        ambient: vec4(0.4, 0.7, 1.0, 1.0),
-        diffuse: vec4(0.4, 0.7, 1.0, 1.0),
-        specular: vec4(1.0, 1.0, 1.0, 1.0)
+        ambient: vec4(0.9, 0.9, 0.9, 1.0),    // White ambient
+        diffuse: vec4(0.9, 0.9, 0.9, 1.0),    // White diffuse
+        specular: vec4(1.0, 1.0, 1.0, 1.0),   // White specular
+        ambientCoef: 0.4,
+        diffuseCoef: 0.6,
+        specularCoef: 0.8,
+        shininess: 45
     }
 };
 
@@ -83,20 +95,20 @@ var backgroundImage = new Image();
 var hasBackgroundImage = false;
 
 // Add these material presets after the materials object (around line 77)
-const materialPresets = {
-    dull: {
-        ambient: vec4(0.1, 0.1, 0.1, 1.0),
-        diffuse: vec4(0.2, 0.2, 0.2, 1.0),
-        specular: vec4(0.1, 0.1, 0.1, 1.0),
-        shininess: 1
-    },
-    metallic: {
-        ambient: vec4(0.3, 0.3, 0.3, 1.0),
-        diffuse: vec4(0.7, 0.7, 0.7, 1.0),
-        specular: vec4(1.0, 1.0, 1.0, 1.0),
-        shininess: 200  // Increased for more focused highlights
-    }
-};
+// const materialPresets = {
+//     dull: {
+//         ambient: vec4(0.1, 0.1, 0.1, 1.0),
+//         diffuse: vec4(0.2, 0.2, 0.2, 1.0),
+//         specular: vec4(0.1, 0.1, 0.1, 1.0),
+//         shininess: 1
+//     },
+//     metallic: {
+//         ambient: vec4(0.3, 0.3, 0.3, 1.0),
+//         diffuse: vec4(0.7, 0.7, 0.7, 1.0),
+//         specular: vec4(1.0, 1.0, 1.0, 1.0),
+//         shininess: 200  // Increased for more focused highlights
+//     }
+// };
 
 /*-----------------------------------------------------------------------------------*/
 // WebGL Utilities
@@ -290,17 +302,17 @@ window.onload = function init()
     });
 
     // Add material presets event listeners
-    document.getElementById('dull-material').addEventListener('click', function() {
-        // Apply dull material properties to selected object
-        materials[selectedObject].ambient = materialPresets.dull.ambient;
-        materials[selectedObject].diffuse = materialPresets.dull.diffuse;
-        materials[selectedObject].specular = materialPresets.dull.specular;
-        globalShininess = materialPresets.dull.shininess;
+    // document.getElementById('dull-material').addEventListener('click', function() {
+    //     // Apply dull material properties to selected object
+    //     materials[selectedObject].ambient = materialPresets.dull.ambient;
+    //     materials[selectedObject].diffuse = materialPresets.dull.diffuse;
+    //     materials[selectedObject].specular = materialPresets.dull.specular;
+    //     globalShininess = materialPresets.dull.shininess;
         
-        // Update UI
-        updateMaterialUI();
-        render();
-    });
+    //     // Update UI
+    //     updateMaterialUI();
+    //     render();
+    // });
 
     // document.getElementById('slider-material-shininess').addEventListener('input', function(event) {
     //     const value = parseInt(event.target.value);
@@ -317,21 +329,21 @@ window.onload = function init()
     // });
 
     // Add material type slider handler
-    document.getElementById('slider-material-type').addEventListener('input', function(event) {
-        const value = parseInt(event.target.value);
-        const t = value / 100;
+    // document.getElementById('slider-material-type').addEventListener('input', function(event) {
+    //     const value = parseInt(event.target.value);
+    //     const t = value / 100;
         
-        // Update material properties
-        materials[selectedObject].ambient = interpolateMaterial(value).ambient;
-        materials[selectedObject].diffuse = interpolateMaterial(value).diffuse;
-        materials[selectedObject].specular = interpolateMaterial(value).specular;
+    //     // Update material properties
+    //     materials[selectedObject].ambient = interpolateMaterial(value).ambient;
+    //     materials[selectedObject].diffuse = interpolateMaterial(value).diffuse;
+    //     materials[selectedObject].specular = interpolateMaterial(value).specular;
         
-        globalShininess = interpolateMaterial(value).shininess;
+    //     globalShininess = interpolateMaterial(value).shininess;
         
-        // Update UI
-        updateMaterialUI();
-        render();
-    });
+    //     // Update UI
+    //     updateMaterialUI();
+    //     render();
+    // });
 }
 
 // Retrieve all elements from HTML and store in the corresponding variables
@@ -663,8 +675,8 @@ function render()
 function drawTeacup()
 {
     modelViewMatrix = lookAt(eye, at, up);
-    modelViewMatrix = mult(modelViewMatrix, translate(1.2, 0.3, -0.5));
-    modelViewMatrix = mult(modelViewMatrix, rotateX(10 + teacupTheta[0]));
+    modelViewMatrix = mult(modelViewMatrix, translate(1.3, 0.2, -1.0));
+    modelViewMatrix = mult(modelViewMatrix, rotateX(12 + teacupTheta[0]));
     modelViewMatrix = mult(modelViewMatrix, rotateY(teacupTheta[1]));
     modelViewMatrix = mult(modelViewMatrix, rotateZ(teacupTheta[2]));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
@@ -697,7 +709,7 @@ function drawPlate()
 {
     modelViewMatrix = lookAt(eye, at, up);
     modelViewMatrix = mult(modelViewMatrix, translate(-0.2, -0.25, 0));
-    modelViewMatrix = mult(modelViewMatrix, rotateX(15 + plateTheta[0]));//15
+    modelViewMatrix = mult(modelViewMatrix, rotateX(15 + plateTheta[0]));
     modelViewMatrix = mult(modelViewMatrix, rotateY(plateTheta[1]));
     modelViewMatrix = mult(modelViewMatrix, rotateZ(plateTheta[2]));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
@@ -968,30 +980,43 @@ function selectObject(objectName) {
 function updateMaterialUI() {
     var material = materials[selectedObject];
 
-    // Safely update ambient color circle
-    var ambientCircle = document.querySelector('.material-ambient-circle');
-    if (ambientCircle) {
-        ambientCircle.style.backgroundColor = `rgb(${material.ambient[0] * 255}, ${material.ambient[1] * 255}, ${material.ambient[2] * 255})`;
-    }
+    // Update color pickers
+    document.getElementById('material-ambient-color').value = rgbToHex(
+        Math.round(material.ambient[0] * 255),
+        Math.round(material.ambient[1] * 255),
+        Math.round(material.ambient[2] * 255)
+    );
+    
+    document.getElementById('material-diffuse-color').value = rgbToHex(
+        Math.round(material.diffuse[0] * 255),
+        Math.round(material.diffuse[1] * 255),
+        Math.round(material.diffuse[2] * 255)
+    );
+    
+    document.getElementById('material-specular-color').value = rgbToHex(
+        Math.round(material.specular[0] * 255),
+        Math.round(material.specular[1] * 255),
+        Math.round(material.specular[2] * 255)
+    );
 
-    // Safely update diffuse color circle
-    var diffuseCircle = document.querySelector('.material-diffuse-circle');
-    if (diffuseCircle) {
-        diffuseCircle.style.backgroundColor = `rgb(${material.diffuse[0] * 255}, ${material.diffuse[1] * 255}, ${material.diffuse[2] * 255})`;
-    }
+    // Update coefficient sliders
+    document.getElementById('slider-ambient-coef').value = material.ambientCoef;
+    document.getElementById('text-ambient-coef').innerHTML = material.ambientCoef.toFixed(2);
 
-    // Update material sliders
-    document.getElementById('slider-shininess').value = globalShininess;
-    document.getElementById('text-material-shininess').textContent = globalShininess;
+    document.getElementById('slider-diffuse-coef').value = material.diffuseCoef;
+    document.getElementById('text-diffuse-coef').innerHTML = material.diffuseCoef.toFixed(2);
 
-    document.getElementById('slider-ambient-coef').value = material.ambient[0];
-    document.getElementById('text-ambient-coef').innerHTML = material.ambient[0].toFixed(2);
+    document.getElementById('slider-specular-coef').value = material.specularCoef;
+    document.getElementById('text-specular-coef').innerHTML = material.specularCoef.toFixed(2);
 
-    document.getElementById('slider-diffuse-coef').value = material.diffuse[0];
-    document.getElementById('text-diffuse-coef').innerHTML = material.diffuse[0].toFixed(2);
+    // // Update shininess
+    // document.getElementById('slider-shininess').value = material.shininess;
+    // document.getElementById('text-shininess').innerHTML = material.shininess;
 
-    document.getElementById('slider-specular-coef').value = material.specular[0];
-    document.getElementById('text-specular-coef').innerHTML = material.specular[0].toFixed(2);
+    // // Update global shininess
+    // globalShininess = material.shininess;
+    
+    recompute();
 }
 
 
