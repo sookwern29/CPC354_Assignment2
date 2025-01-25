@@ -273,18 +273,25 @@ window.onload = function init()
         render();
     });
 
+// Add at the top with other global variables
+var backgroundImage = new Image();
+var hasBackgroundImage = false;
+
     // Add in getUIElement() function after the background color picker handler
     document.getElementById('background-image-upload').addEventListener('change', function(event) {
         const file = event.target.files[0];
         if (file) {
             const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    backgroundImage = img;
+            reader.onload = function(event) {
+                backgroundImage.onload = function() {
+                    hasBackgroundImage = true;
+                    gl.clearColor(0.0, 0.0, 0.0, 0.0); // Make background transparent
+                    canvas.style.backgroundImage = `url(${backgroundImage.src})`;
+                    canvas.style.backgroundSize = 'cover';
+                    canvas.style.backgroundPosition = 'center';
                     render();
                 };
-                img.src = e.target.result;
+                backgroundImage.src = event.target.result;
             };
             reader.readAsDataURL(file);
         }
@@ -294,6 +301,7 @@ window.onload = function init()
     document.getElementById('remove-bkg-btn').addEventListener('click', function() {
         hasBackgroundImage = false;
         canvas.style.backgroundImage = 'none';
+        document.getElementById('background-image-upload').value = ''; // Clear the file input
         // Restore the previous background color
         const colorValue = document.getElementById('background-color-picker').value;
         const color = hexToRgb(colorValue);
